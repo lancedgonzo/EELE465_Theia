@@ -1,0 +1,10 @@
+#Ignore CCS files that mess up project builds
+/Debug/
+/driverlib/
+/targetConfigs/
+lnk_msp430fr2355.cmd
+/.launches/
+/.settings/
+.ccsproject
+.ccsproject
+.project
