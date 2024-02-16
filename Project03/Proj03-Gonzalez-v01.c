@@ -6,15 +6,9 @@
 
 	Summary:
 
-
 	Version Summary:
         v01:
-        v02:
-	    v03: Transmits byte of data with ack, sends another address
- 	    v04: Switches to Compare interrupt for clock, finished I2C transmission
-        v05: Merged lances and zachs code
-        v05: Working stop transmit and start code
-
+        
     Ports Map: 
 
 	Important Variables/Registers:
