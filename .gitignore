@@ -1,10 +1,10 @@
 #Ignore CCS files that mess up project builds
-Debug/*
-driverlib/*
-targetConfigs/*
-lnk_msp430fr2355.cmd
-.launches/*
-.settings/*
-.ccsproject
-.ccsproject
-.project
+Project03-Gonzalez_Kirkland/Debug/*
+Project03-Gonzalez_Kirkland/driverlib/*
+Project03-Gonzalez_Kirkland/targetConfigs/*
+Project03-Gonzalez_Kirkland/lnk_msp430fr2355.cmd
+Project03-Gonzalez_Kirkland/.launches/*
+Project03-Gonzalez_Kirkland/.settings/*
+Project03-Gonzalez_Kirkland/.ccsproject
+Project03-Gonzalez_Kirkland/.ccsproject
+Project03-Gonzalez_Kirkland/.project
