@@ -8,10 +8,11 @@
 
 	Version Summary:
         v01: Press button in column to toggle 0-3 binary on leds
-        
+        v02: Working LED Output, defined keypad macros, working column readout
+
     Ports Map: 
         P3.1, 3.5, 1.1, 5.4, 1.4, 5.3, 5.1, 5.0 - Keyboard P1-8
-        P3.2, 3.3
+        P3.0, 2.5, 4.4, 4.7, 4.6, 4.0, 2.2, 2.0 - LEDs 0-7
 
 	Important Variables/Registers:
 	    Button 0x76543210
@@ -30,9 +31,7 @@
     
     MSP Errors:
         P1.3 Always High
-        P4.4 Always Low
-        P4.7 Always Low
-        P4.6 Always Low
+        Row P3.2-2.1 mostly not working?
         P4.5 Inconsistent Input?
 	Todo:
 		
