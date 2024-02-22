@@ -62,11 +62,22 @@
 #define KEY_C 0x048
 #define KEY_D 0x088
 
+#define Port1 GPIO_PORT_P1  
+#define Port3 GPIO_PORT_P3  
+#define Port5 GPIO_PORT_P5 
+
+#define P0 GPIO_PIN0
+#define P1 GPIO_PIN1
+#define P2 GPIO_PIN2
+#define P3 GPIO_PIN3
+#define P4 GPIO_PIN4
+#define P5 GPIO_PIN5
+
 uint8_t Button = 0, LED_Out = 0, Pattern = 0;
 uint8_t PatternBCounter = 0;
 uint8_t PatternDCounter = 0;
 uint8_t State = 0; // 0 - wait for key, 1-3 - correct button pressed for password, 
-uint8_t LastButton;
+uint8_t LastButton; // tracker of last button pressed
 bool CheckFlag = false;
 int test; // arbitrary test register
 
@@ -133,15 +144,34 @@ int main(void) {
                     State++;
             break;
             case 3: // password entered
+                // switch pattern based on last button pressed
+                switch (LastButton) { 
+                    case KEY_A: Pattern = 1; break;
+                    case KEY_B: Pattern = 2;  break;
+                    case KEY_C: Pattern = 3;  break;
+                    case KEY_D: Pattern = 4;  break;
+                    default: Pattern = 0; break;
+                }
+                // Run pattern based on current value 
+                switch (Pattern) { 
+                    case 1: PatternAUpdate(); break;
+                    case 2: PatternBUpdate();  break;
+                    case 3: PatternCUpdate();  break;
+                    case 4: PatternDUpdate();  break;
+                    default: break;
+                }
             break;
             
         }
-
-        if (Pattern == BIT0) {
-            PatternBUpdate();
-        }
         UpdateLED();
     }
+}
+
+void delay_init(){
+    // Configure Timer_A to generate interrupts every 1 second
+    TB0CCTL0 = CCIE; 
+    TB0CCR0 = 32767; 
+    TB0CTL = TBSSEL_1 + MC_1 + TBCLR; 
 }
 
 void CheckCol() {
@@ -164,11 +194,9 @@ void CheckCol() {
 
     Button = ((P5IN & BIT4) == BIT4) ? (Button | BIT3) : (Button & ~BIT3);
     Button = ((P1IN & BIT1) == BIT1) ? (Button | BIT2) : (Button & ~BIT2);
+    Button = ((P3IN & BIT5) == BIT5) ? (Button | BIT1) : (Button & ~BIT1);
+    Button = ((P3IN & BIT1) == BIT1) ? (Button | BIT0) : (Button & ~BIT0);
 
-    test = P3IN;
-    test &= BIT5;
-    if (test == BIT5)
-        Button |= BIT1;
     test = P3IN;
     test &= BIT1;
     if (test == BIT1)
@@ -245,7 +273,7 @@ __interrupt void ISR_P1_Button_Pressed(void) {
     CheckFlag = true;
     P1IV &= ~BIT4;  // Clear CCR0 Flag
 }
-//-- End ISR_SW1_Triggered ----------------
+//-- End ISR_P1_Button_Pressed ----------------
 
 #pragma vector = PORT5_VECTOR
 __interrupt void ISR_P5_Button_Pressed(void) {
@@ -254,4 +282,15 @@ __interrupt void ISR_P5_Button_Pressed(void) {
     P5IV &= ~BIT1;
     P5IV &= ~BIT3;
 }
-//-- End ISR_SW2_Triggered ----------------
+//-- End ISR_P5_Button_Pressed ----------------
+
+#pragma vector=TIMER0_B0_VECTOR
+__interrupt void Timer_B_ISR(void){
+    if (State < 3)
+        State = 0;
+    else 
+        TimerFlag = true;  
+
+    TB0CCTL0 &= ~CCIFG; 
+}
+//-- End Timer_B_ISR ----------------
