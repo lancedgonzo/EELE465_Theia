@@ -39,6 +39,7 @@
 
 #include "gpio.h"
 #include "msp430fr2355.h"
+#include "stdbool.h"
 #include "sys/_stdint.h"
 #include <msp430.h> 
 #include <driverlib.h>
@@ -64,14 +65,14 @@
 uint8_t Button = 0, LED_Out = 0, Pattern = 0;
 uint8_t PatternBCounter = 0;
 uint8_t PatternDCounter = 0;
+uint8_t State = 0; // 0 - wait for key, 1-3 - correct button pressed for password, 
+uint8_t LastButton;
+bool CheckFlag = false;
 int test; // arbitrary test register
 
 int main(void) {
     // Stop watchdog timer
     WDT_A_hold(WDT_A_BASE);
-    // DEBUG top leds TODO Deleat
-    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN0);
-    GPIO_setAsOutputPin(GPIO_PORT_P6, GPIO_PIN6);
     //LED Bar Output initalizing as low
     GPIO_setAsOutputPin(GPIO_PORT_P3, GPIO_PIN0);
     GPIO_setOutputLowOnPin(GPIO_PORT_P3, GPIO_PIN0);
@@ -90,38 +91,52 @@ int main(void) {
     GPIO_setAsOutputPin(GPIO_PORT_P2, GPIO_PIN0);
     GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN0);
 
+    //Setting keypad ports as inputs with interupt enabled. todo decide which should be the input. rows vs columns. won't work as is
+    GPIO_setAsInputPinWithPullDownResistor(GPIO_PORT_P5, GPIO_PIN4);
+    GPIO_setAsInputPinWithPullDownResistor(GPIO_PORT_P1, GPIO_PIN1);
+    GPIO_setAsInputPinWithPullDownResistor(GPIO_PORT_P3, GPIO_PIN5);
+    GPIO_setAsInputPinWithPullDownResistor(GPIO_PORT_P3, GPIO_PIN1);
+    GPIO_setAsInputPinWithPullDownResistor(GPIO_PORT_P5, GPIO_PIN3);
+    GPIO_setAsInputPinWithPullDownResistor(GPIO_PORT_P5, GPIO_PIN1);
+    GPIO_setAsInputPinWithPullDownResistor(GPIO_PORT_P5, GPIO_PIN0);
+    GPIO_setAsInputPinWithPullDownResistor(GPIO_PORT_P1, GPIO_PIN4);
+    P5IES |= BIT0;
+    P5IES |= BIT1;
+    P5IES |= BIT3;
+    P5IES |= BIT4;
+    P1IES |= BIT4;
+    P1IES |= BIT1;
+    P3IES |= BIT5;
+    P3IES |= BIT1;
+
 
     // Disable the GPIO power-on default high-impedance mode
     // to activate previously configured port settings
     PMM_unlockLPM5();
 
     while(1) {
-        CheckCol();
-        switch(Button) {
-            case BIT0: 
-                // TODO if pattern already bit0 reset
-                // start pattern 0
-                Pattern = BIT0; break;
-            case BIT1: Pattern = BIT1; break;
-            case BIT2: Pattern = BIT2; break;
-            case BIT3: Pattern = BIT3; break;
-            case KEY_0: break;
-            case KEY_1: break;
-            case KEY_2: break;
-            case KEY_3: break;
-            case KEY_4: break;
-            case KEY_5: break;
-            case KEY_6: break;
-            case KEY_7: break;
-            case KEY_8: break;
-            case KEY_9: break;
-            case KEY_AST: break;
-            case KEY_POUND: break;
-            case KEY_A: break;
-            case KEY_B: break;
-            case KEY_C: break;
-            case KEY_D: break;
+        if (CheckFlag) {
+            CheckCol();
+            CheckRow();
         }
+        switch(State) {
+            case 0: // start waiting for password
+                if (LastButton = passcode[0])
+                    State++;
+            break;
+            case 1: // first key entered
+                if (LastButton = passcode[1])
+                    State++;
+            break;
+            case 2: // second key entered
+                if (LastButton = passcode[2])
+                    State++;
+            break;
+            case 3: // password entered
+            break;
+            
+        }
+
         if (Pattern == BIT0) {
             PatternBUpdate();
         }
@@ -143,17 +158,13 @@ void CheckCol() {
     GPIO_setAsInputPinWithPullDownResistor(GPIO_PORT_P1, GPIO_PIN1);
     GPIO_setAsInputPinWithPullDownResistor(GPIO_PORT_P3, GPIO_PIN5);
     GPIO_setAsInputPinWithPullDownResistor(GPIO_PORT_P3, GPIO_PIN1);
+
     // Clear button column values
     Button &= 0x0F0;
 
-    test = P5IN;
-    test &= BIT4;
-    if (test == BIT4)
-        Button |= BIT3;
-    test = P1IN;
-    test &= BIT1;
-    if (test == BIT1)
-        Button |= BIT2;
+    Button = ((P5IN & BIT4) == BIT4) ? (Button | BIT3) : (Button & ~BIT3);
+    Button = ((P1IN & BIT1) == BIT1) ? (Button | BIT2) : (Button & ~BIT2);
+
     test = P3IN;
     test &= BIT5;
     if (test == BIT5)
@@ -165,10 +176,40 @@ void CheckCol() {
 
 }
 
+void CheckRow() {
+}
+
+void ButtonResponse() {
+    switch(Button) {
+        case KEY_0: LastButton = KEY_0; break;
+        case KEY_1: LastButton = KEY_1; break;
+        case KEY_2: LastButton = KEY_2; break;
+        case KEY_3: LastButton = KEY_3; break;
+        case KEY_4: LastButton = KEY_4; break;
+        case KEY_5: LastButton = KEY_5; break;
+        case KEY_6: LastButton = KEY_6; break;
+        case KEY_7: LastButton = KEY_7; break;
+        case KEY_8: LastButton = KEY_8; break;
+        case KEY_9: LastButton = KEY_9; break;
+        case KEY_AST: LastButton = KEY_AST; break;
+        case KEY_POUND: LastButton = KEY_POUND; break;
+        case KEY_A: LastButton = KEY_A; break;
+        case KEY_B: LastButton = KEY_B; break;
+        case KEY_C: LastButton = KEY_C; break;
+        case KEY_D: LastButton = KEY_D; break;
+    }
+}
+
+void PatternAUpdate() {
+}
+
 void PatternBUpdate() {
     // Count and reset on rollover
     PatternBCounter += 1;
     LED_Out = PatternBCounter;
+}
+
+void PatternCUpdate() {
 }
 
 void PatternDUpdate() {
@@ -197,3 +238,20 @@ void UpdateLED() {
     P2OUT = ((LED_Out & BIT6) == BIT6) ? (P2OUT | BIT2) : (P2OUT & ~BIT2);
     P2OUT = ((LED_Out & BIT7) == BIT7) ? (P2OUT | BIT0) : (P2OUT & ~BIT0);    
 }
+
+//-- Interrupt Service Routines --------------------------
+#pragma vector = PORT1_VECTOR
+__interrupt void ISR_P1_Button_Pressed(void) {
+    CheckFlag = true;
+    P1IV &= ~BIT4;  // Clear CCR0 Flag
+}
+//-- End ISR_SW1_Triggered ----------------
+
+#pragma vector = PORT5_VECTOR
+__interrupt void ISR_P5_Button_Pressed(void) {
+    CheckFlag = true;
+    P5IV &= ~BIT0; // Clear Flag
+    P5IV &= ~BIT1;
+    P5IV &= ~BIT3;
+}
+//-- End ISR_SW2_Triggered ----------------
