@@ -217,19 +217,18 @@ void CheckCol() {
 
 void CheckRow() {
     // Set necessary pins as inputs and outputs for reading columns
-    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN4);
-    GPIO_setAsOutputPin(GPIO_PORT_P5, GPIO_PIN3);
-    GPIO_setAsOutputPin(GPIO_PORT_P5, GPIO_PIN1);
-    GPIO_setAsOutputPin(GPIO_PORT_P5, GPIO_PIN0);
-    GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN4);
-    GPIO_setOutputHighOnPin(GPIO_PORT_P5, GPIO_PIN3);
-    GPIO_setOutputHighOnPin(GPIO_PORT_P5, GPIO_PIN1);
-    GPIO_setOutputHighOnPin(GPIO_PORT_P5, GPIO_PIN0);
-    GPIO_setAsInputPinWithPullDownResistor(GPIO_PORT_P5, GPIO_PIN4);
-    GPIO_setAsInputPinWithPullDownResistor(GPIO_PORT_P1, GPIO_PIN1);
-    GPIO_setAsInputPinWithPullDownResistor(GPIO_PORT_P3, GPIO_PIN5);
-    GPIO_setAsInputPinWithPullDownResistor(GPIO_PORT_P3, GPIO_PIN1);
-
+    GPIO_setAsOutputPin(GPIO_PORT_P5, GPIO_PIN4);
+    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN1);
+    GPIO_setAsOutputPin(GPIO_PORT_P3, GPIO_PIN5);
+    GPIO_setAsOutputPin(GPIO_PORT_P3, GPIO_PIN1);
+    GPIO_setOutputHighOnPin(GPIO_PORT_P5, GPIO_PIN4);
+    GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN1);
+    GPIO_setOutputHighOnPin(GPIO_PORT_P3, GPIO_PIN5);
+    GPIO_setOutputHighOnPin(GPIO_PORT_P3, GPIO_PIN1);
+    GPIO_setAsInputPinWithPullDownResistor(GPIO_PORT_P1, GPIO_PIN4);
+    GPIO_setAsInputPinWithPullDownResistor(GPIO_PORT_P5, GPIO_PIN3);
+    GPIO_setAsInputPinWithPullDownResistor(GPIO_PORT_P5, GPIO_PIN1);
+    GPIO_setAsInputPinWithPullDownResistor(GPIO_PORT_P5, GPIO_PIN0);
 }
 
 void ButtonResponse() {
