@@ -7,26 +7,27 @@
 	Summary:
 
 	Version Summary:
-        v01: Tested LED output, Display Locked Pattern, Create checking for lock or unlock
+        v01: Tested LED output, Display Locked Pattern, Create checking for lock or unlock 
+
 
     Ports Map: 
-        
+        Keyboard P0-7 (P3.1, 3.5, 1.1, 5.4, 1.4, 5.3, 5.1, 5.0)
+        LEDs 0-7 (P3.0, 2.5, 4.4, 4.7, 4.6, 4.0, 2.2, 2.0) 
 
 	Important Variables/Registers:
 	
 	    
-
 	Todo:
 		
 -----------------------------------------------------------------------------------------------------------------------*/
 
 #include "gpio.h"
 #include "msp430fr2355.h"
-// #include "sys/_stdint.h"
+
 #include <msp430.h> 
 #include <driverlib.h>
 #include <stdint.h>
-// #include <stdint.h>
+
 
 #define KEYPAD_PIN_COUNT 8
 #define UNLOCK_CODE 1234
@@ -80,6 +81,7 @@ int main(void){
     // Disable the GPIO power-on default high-impedance 
     PMM_unlockLPM5();
 
+    //Initialize Timer_B for delay
     delay_init();
 
     while(1){
@@ -90,11 +92,11 @@ int main(void){
             if(code == UNLOCK_CODE){
                 state = UNLOCKED_STATE;
                 turn_off_leds(); 
-            }
+            } else{}
         } else if (state == UNLOCKED_STATE) {
             // int pattern = read_keypad(); 
             display_pattern(pattern);
-        }
+        } else{}
     }
 }
 
@@ -153,4 +155,5 @@ void delay_ms(ms){
 #pragma vector=TIMER0_B0_VECTOR
 __interrupt void Timer_B_ISR(void){
     delay_counter++;
+    TB0CCTL0 &= ~CCIFG; 
 }
