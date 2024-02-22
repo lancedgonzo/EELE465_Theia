@@ -73,12 +73,23 @@
 #define P4 GPIO_PIN4
 #define P5 GPIO_PIN5
 
+void CheckCol();
+void CheckRow();
+void PatternAUpdate();
+void PatternBUpdate();
+void PatternCUpdate();
+void PatternDUpdate();
+void ButtonResponse();
+void UpdateLED();
+
 uint8_t Button = 0, LED_Out = 0, Pattern = 0;
 uint8_t PatternBCounter = 0;
 uint8_t PatternDCounter = 0;
 uint8_t State = 0; // 0 - wait for key, 1-3 - correct button pressed for password, 
 uint8_t LastButton; // tracker of last button pressed
+uint8_t Passcode[] = {KEY_1, KEY_2, KEY_3};
 bool CheckFlag = false;
+bool TimerFlag = false;
 int test; // arbitrary test register
 
 int main(void) {
@@ -132,15 +143,15 @@ int main(void) {
         }
         switch(State) {
             case 0: // start waiting for password
-                if (LastButton = passcode[0])
+                if (LastButton == Passcode[0])
                     State++;
             break;
             case 1: // first key entered
-                if (LastButton = passcode[1])
+                if (LastButton == Passcode[1])
                     State++;
             break;
             case 2: // second key entered
-                if (LastButton = passcode[2])
+                if (LastButton == Passcode[2])
                     State++;
             break;
             case 3: // password entered
@@ -205,6 +216,20 @@ void CheckCol() {
 }
 
 void CheckRow() {
+    // Set necessary pins as inputs and outputs for reading columns
+    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN4);
+    GPIO_setAsOutputPin(GPIO_PORT_P5, GPIO_PIN3);
+    GPIO_setAsOutputPin(GPIO_PORT_P5, GPIO_PIN1);
+    GPIO_setAsOutputPin(GPIO_PORT_P5, GPIO_PIN0);
+    GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN4);
+    GPIO_setOutputHighOnPin(GPIO_PORT_P5, GPIO_PIN3);
+    GPIO_setOutputHighOnPin(GPIO_PORT_P5, GPIO_PIN1);
+    GPIO_setOutputHighOnPin(GPIO_PORT_P5, GPIO_PIN0);
+    GPIO_setAsInputPinWithPullDownResistor(GPIO_PORT_P5, GPIO_PIN4);
+    GPIO_setAsInputPinWithPullDownResistor(GPIO_PORT_P1, GPIO_PIN1);
+    GPIO_setAsInputPinWithPullDownResistor(GPIO_PORT_P3, GPIO_PIN5);
+    GPIO_setAsInputPinWithPullDownResistor(GPIO_PORT_P3, GPIO_PIN1);
+
 }
 
 void ButtonResponse() {
