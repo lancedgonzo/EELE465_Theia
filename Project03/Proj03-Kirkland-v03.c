@@ -122,6 +122,15 @@ int main(void) {
     GPIO_setAsInputPinWithPullDownResistor(GPIO_PORT_P5, GPIO_PIN1);
     GPIO_setAsInputPinWithPullDownResistor(GPIO_PORT_P5, GPIO_PIN0);
     GPIO_setAsInputPinWithPullDownResistor(GPIO_PORT_P1, GPIO_PIN4);
+    P5IFG &= ~BIT0;
+    P5IFG &= ~BIT1;
+    P5IFG &= ~BIT3;
+    P5IFG &= ~BIT4;
+    P1IFG &= ~BIT4;
+    P1IFG &= ~BIT1;
+    P3IFG &= ~BIT5;
+    P3IFG &= ~BIT1;
+
     P5IES |= BIT0;
     P5IES |= BIT1;
     P5IES |= BIT3;
@@ -131,10 +140,20 @@ int main(void) {
     P3IES |= BIT5;
     P3IES |= BIT1;
 
-
     // Disable the GPIO power-on default high-impedance mode
     // to activate previously configured port settings
     PMM_unlockLPM5();
+
+    P5IE |= BIT0;
+    P5IE |= BIT1;
+    P5IE |= BIT3;
+    P5IE |= BIT4;
+    P1IE |= BIT4;
+    P1IE |= BIT1;
+    P3IE |= BIT5;
+    P3IE |= BIT1;
+
+    __enable_interrupt();
 
     while(1) {
         if (CheckFlag) {
