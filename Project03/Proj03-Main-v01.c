@@ -48,10 +48,10 @@
 #include <stdint.h>
 
 // Defining row and column input as keys
-#define KEY_1 0x011
-#define KEY_2 0x012
-#define KEY_3 0x014
-#define KEY_4 0x021
+#define KEY_1 0x011 // 17
+#define KEY_2 0x012 // 18
+#define KEY_3 0x014 // 20
+#define KEY_4 0x021 
 #define KEY_5 0x022
 #define KEY_6 0x024
 #define KEY_7 0x041
@@ -210,7 +210,7 @@ int main(void) {
                         Pattern = 4;  
                         break;
                     // Relock system if * is pressed
-                    case KEY_AST: State = 0; Pattern = 0; break;
+                    case KEY_AST: State = 0; Pattern = 0; LED_Out = 0x00; break;
                     // Otherwise disable pattern
                     default: Pattern = 0; break;
                 }
