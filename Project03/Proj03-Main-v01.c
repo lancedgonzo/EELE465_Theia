@@ -47,6 +47,7 @@
 #include <driverlib.h>
 #include <stdint.h>
 
+// Defining row and column input as keys
 #define KEY_1 0x011
 #define KEY_2 0x012
 #define KEY_3 0x014
@@ -64,6 +65,7 @@
 #define KEY_C 0x048
 #define KEY_D 0x088
 
+// Making ports and pins easier to reference
 #define Port1 GPIO_PORT_P1  
 #define Port2 GPIO_PORT_P2
 #define Port3 GPIO_PORT_P3  
@@ -104,22 +106,10 @@ int main(void) {
     // Stop watchdog timer
     WDT_A_hold(WDT_A_BASE);
 
+    // Initialize LED and keyboard
     LedLow();
     RowInput();
 
-    //Setting keypad ports as inputs with interupt enabled. todo decide which should be the input. rows vs columns. won't work as is
-    GPIO_setAsInputPinWithPullDownResistor(Port2, P0);
-    GPIO_setAsInputPinWithPullDownResistor(Port2, P2);
-    GPIO_setAsInputPinWithPullDownResistor(Port4, P0);
-    GPIO_setAsInputPinWithPullDownResistor(Port4, P6);
-    GPIO_setAsOutputPin(Port4, P7);
-    GPIO_setAsOutputPin(Port4, P4);
-    GPIO_setAsOutputPin(Port2, P5);
-    GPIO_setAsOutputPin(Port3, P0);
-    GPIO_setOutputHighOnPin(Port4, P7);
-    GPIO_setOutputHighOnPin(Port4, P4);
-    GPIO_setOutputHighOnPin(Port2, P5);
-    GPIO_setOutputHighOnPin(Port3, P0);
     // Clear interrupt flag bits
     P2IFG &= ~BIT0; 
     P2IFG &= ~BIT2;
@@ -254,7 +244,7 @@ void delay_init(){
     TB0CTL = TBSSEL_1 + MC_1 + TBCLR; 
 }
 
-//-Rows: Sets row pins as OUTPUT---------------------------------------------------------------------
+//-ColumnInput: Sets row pins as OUTPUT---------------------------------------------------------------------
 void ColumnInput(){
   
   //Configure outputs on Rows
@@ -274,8 +264,9 @@ void ColumnInput(){
     GPIO_setOutputHighOnPin(Port2, GPIO_PIN2);
     GPIO_setOutputHighOnPin(Port4, GPIO_PIN0);
     GPIO_setOutputHighOnPin(Port4, GPIO_PIN6);
-}//--END Rows----------------------------------------------------------------------------------------
+}//--END ColumnInput----------------------------------------------------------------------------------------
 
+//-CheckCol: Sets row pins as OUTPUT---------------------------------------------------------------------
 void CheckCol() {
     // Set necessary pins as inputs and outputs for reading columns
     ColumnInput();
@@ -287,7 +278,7 @@ void CheckCol() {
     Button = ((P2IN & BIT5) == BIT5) ? (Button | BIT1) : (Button & ~BIT1);
     Button = ((P3IN & BIT0) == BIT0) ? (Button | BIT0) : (Button & ~BIT0);
 
-}
+}//--END CheckCol-------------------------------------------------------------------------------------
 
 //-Collumns: Sets Collumn pins as OUTPUT-------------------------------------------------------------
 void RowInput(){
