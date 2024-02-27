@@ -31,10 +31,10 @@
 
 #include "gpio.h"
 #include "msp430fr2355.h"
-#include "sys/_stdint.h"
+// #include "sys/_stdint.h"
 #include <msp430.h> 
 #include <driverlib.h>
-#include <stdint.h>
+// #include <stdint.h>
 
 //Macro Definitions for ease of coding -------------------------------------------------------------
 #define Port1 GPIO_PORT_P1  
@@ -55,10 +55,11 @@
 
 //Function Declarations ----------------------------------------------------------------------------
 void Initialization(); 
-void SetCollumn();
-void SetRows(); 
+void RowInput();
+void CollumnInput(); 
 void LedLow(); 
 void LedLocked();
+void PatternA();
 
 
 int main(void) {
@@ -73,7 +74,9 @@ int main(void) {
 
     Initialization();
 
-    while(1){}
+    while(1){
+        PatternA(); 
+    }
 
 }
 
@@ -81,11 +84,11 @@ int main(void) {
 //-Initalization: Main initialization for startup----------------------------------------------------
 void Initialization(){
     LedLocked(); 
-    SetCollumn(); 
+    RowInput(); 
 }//--END Initialization-----------------------------------------------------------------------------
 
 //-Collumns: Sets Collumn pins as OUTPUT-------------------------------------------------------------
-void SetCollumn(){
+void RowInput(){
 
     //Set P0-3 on keyboard as outputs
     GPIO_setAsOutputPin(Port3, Pin6);
@@ -105,10 +108,10 @@ void SetCollumn(){
     GPIO_setOutputHighOnPin(Port1, Pin1);
     GPIO_setOutputHighOnPin(Port3, Pin4);
 
-}//--END SetCollumns---------------------------------------------------------------------------------
+}//--END RowInputs---------------------------------------------------------------------------------
 
 //-Rows: Sets row pins as OUTPUT---------------------------------------------------------------------
-void SetRows(){
+void CollumnInput(){
   
   //Configure outputs on Rows
     GPIO_setAsOutputPin(GPIO_PORT_P3, GPIO_PIN5);
@@ -172,3 +175,17 @@ void LedLocked(){
     GPIO_setOutputHighOnPin(Port2, Pin5);
     GPIO_setOutputHighOnPin(Port3, Pin0);
 }//--END LedLocked---------------------------------------------------------------------------------
+
+//-PatternA: Static pattern XOXOXOXO---------------------------------------------------------------
+void PatternA(){
+    //Set High on Collumns
+    GPIO_setOutputHighOnPin(Port2, Pin2);
+    GPIO_setOutputLowOnPin(Port4, Pin0);
+    GPIO_setOutputHighOnPin(Port6, Pin3);
+    GPIO_setOutputLowOnPin(Port4, Pin6);
+    GPIO_setOutputHighOnPin(Port4, Pin7);
+    GPIO_setOutputLowOnPin(Port4, Pin4);
+    GPIO_setOutputHighOnPin(Port2, Pin5);
+    GPIO_setOutputLowOnPin(Port3, Pin0);
+}//--END PatternA--------------------------------------------------------------------------------
+
