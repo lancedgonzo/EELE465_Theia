@@ -53,13 +53,18 @@
 #define Pin6 GPIO_PIN6
 #define Pin7 GPIO_PIN7
 
+uint8_t PatternDCounter = 0;
+uint8_t Button = 0, LED_Out = 0, Pattern = 0;
+
 //Function Declarations ----------------------------------------------------------------------------
-void Initialization(); 
+void Init(); 
 void RowInput();
 void CollumnInput(); 
 void LedLow(); 
 void LedLocked();
 void PatternA();
+void PatternC(); 
+void UpdateLED();
 
 
 int main(void) {
@@ -72,20 +77,24 @@ int main(void) {
     // Disable the GPIO power-on default high-impedance 
     PMM_unlockLPM5();
 
-    Initialization();
+    __enable_interrupt();
 
+    Init();
+
+    PatternC(); 
     while(1){
-        PatternA(); 
+        // PatternA(); 
+        PatternC(); 
     }
 
 }
 
 //-----Subroutines-----------------------------------------------------------------------------------
-//-Initalization: Main initialization for startup----------------------------------------------------
-void Initialization(){
+//-Initalization: Main Init for startup----------------------------------------------------
+void Init(){
     LedLocked(); 
     RowInput(); 
-}//--END Initialization-----------------------------------------------------------------------------
+}//--END Init-----------------------------------------------------------------------------
 
 //-Collumns: Sets Collumn pins as OUTPUT-------------------------------------------------------------
 void RowInput(){
@@ -189,3 +198,40 @@ void PatternA(){
     GPIO_setOutputLowOnPin(Port3, Pin0);
 }//--END PatternA--------------------------------------------------------------------------------
 
+//-PatternC: Scrolling Pattern ---------------------------------------------------------------
+void PatternC(){
+    // Set timer for 2s
+    TB0CTL |= TBCLR + TBSSEL__ACLK + MC__UP + ID__1;
+    TB0CCR0 = 36864;
+    TB0R = 0;
+    TB0CCTL0 |= CCIE;
+    TB0CCTL0 &= ~CCIFG;
+
+    // Count and reset on rollover
+    switch(PatternDCounter) {
+        case 0: LED_Out = 0x7F; break;
+        case 1: LED_Out = 0xBF; break;
+        case 2: LED_Out = 0xDF; break;
+        case 3: LED_Out = 0xEF; break;
+        case 4: LED_Out = 0xF7; break;
+        case 5: LED_Out = 0xFB; break;
+        case 6: LED_Out = 0xFD; break; 
+        case 7: LED_Out = 0xFE; break;
+    }
+    PatternDCounter += 1;
+    if (PatternDCounter == 7){
+        PatternDCounter = 0;
+    }
+}//--END PatternC--------------------------------------------------------------------------------
+
+//-------------------------------------------------------------------------------------------------
+
+//-----Interrupt Service Routines------------------------------------------------------------------
+//-TimerB0 ISR-------------------------------------------------------------------------------------
+#pragma vector=TIMER0_B0_VECTOR
+__interrupt void Timer_B_ISR(void){
+
+    TB0CCTL0 &= ~CCIFG; 
+}
+//-- End Timer_B_ISR ----------------
+//-------------------------------------------------------------------------------------------------
