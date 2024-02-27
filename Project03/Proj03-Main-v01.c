@@ -160,7 +160,7 @@ int main(void) {
                         case 3: PatternC(); break;
                         case 4: PatternDUpdate(); break;
                         case 5: PatternErrorUpdate(); break;
-                        default: break;
+                        default: LED_Out = 0xFF; break;
                     }
                     TimerFlag = false;
                 }
@@ -196,6 +196,7 @@ int main(void) {
             break;
             case 7: // password entered
                 // switch pattern based on last button pressed
+                LedLow(); 
                 switch (LastButton) { 
                     case KEY_A: Pattern = 1; break;
                     case KEY_B: // Reset pattern if already playing, otherwise switch to pattern
