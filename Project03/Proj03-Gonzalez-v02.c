@@ -8,7 +8,7 @@
 
 	Version Summary:
         v01: Polled Keyboard Input, verified LED Output
-        v02: 
+        v02: Pattern A and Pattern C 
 
 
 
