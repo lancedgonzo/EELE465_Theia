@@ -209,7 +209,7 @@ int main(void) {
                         Pattern = 4;  
                         break;
                     // Relock system if * is pressed
-                    case KEY_AST: State = 0; Pattern = 0; break;
+                    case KEY_AST: State = 0; Pattern = 0; LED_Out = 0x00; break;
                     // Otherwise disable pattern
                     default: Pattern = 0; break;
                 }
