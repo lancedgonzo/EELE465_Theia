@@ -102,9 +102,10 @@ uint8_t Button = 0, LED_Out = 0, Pattern = 0;
 uint8_t PatternBCounter = 0;
 uint8_t PatternDCounter = 0;
 uint8_t PatternECounter = 0;
+uint8_t i; 
 uint8_t State = 0; // 0 - wait for key, 1-3 - correct button pressed for password, 
 uint8_t LastButton = 0; // tracker of last button pressed
-uint8_t const Passcode[] = {KEY_1, KEY_2, KEY_3};
+uint8_t const Passcode[] = {KEY_1, KEY_5, KEY_3};
 bool CheckFlag = false;
 bool TimerFlag = false;
 int test; // arbitrary test register
@@ -456,7 +457,7 @@ void UpdateLED() {
 
 //-SwitchDebounce(): -------------------------------------------------------------------------
 void SwitchDebounce(){
-    for(i=0; i<1000; i++){}
+    for(i=0; i<10; i++){}
 }//--END SwitchDebounce---------------------------------------------------------------
 
 //-- Interrupt Service Routines -----------------------------------------------------------
