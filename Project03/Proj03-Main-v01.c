@@ -81,15 +81,18 @@
 #define P6 GPIO_PIN6
 #define P7 GPIO_PIN7
 
+void ColInput();
 void CheckCol();
+void RowInput();
 void CheckRow();
-void PatternAUpdate();
+void PatternA();
 void PatternBUpdate();
-void PatternCUpdate();
+void PatternC();
 void PatternDUpdate();
 void PatternErrorUpdate();
 void ButtonResponse();
 void UpdateLED();
+void LedLow();
 
 uint8_t Button = 0, LED_Out = 0, Pattern = 0;
 uint8_t PatternBCounter = 0;
@@ -218,22 +221,22 @@ int main(void) {
 //-LED Init Low: Configures LED ports as output and LOW----------------------------------------------
 void LedLow(){
     //LED Bar Output initalizing as low
-    GPIO_setAsOutputPin(Port3, Pin1);
-    GPIO_setOutputLowOnPin(Port3, Pin1);
-    GPIO_setAsOutputPin(Port3, Pin5);
-    GPIO_setOutputLowOnPin(Port3, Pin5);
-    GPIO_setAsOutputPin(Port1, Pin1);
-    GPIO_setOutputLowOnPin(Port1, Pin1);
-    GPIO_setAsOutputPin(Port5, Pin4);
-    GPIO_setOutputLowOnPin(Port5, Pin4);
-    GPIO_setAsOutputPin(Port5, Pin0);
-    GPIO_setOutputLowOnPin(Port5, Pin0);
-    GPIO_setAsOutputPin(Port5, Pin1);
-    GPIO_setOutputLowOnPin(Port5, Pin1);
-    GPIO_setAsOutputPin(Port5, Pin3);
-    GPIO_setOutputLowOnPin(Port5, Pin3);
-    GPIO_setAsOutputPin(Port1, Pin4);
-    GPIO_setOutputLowOnPin(Port1, Pin4);
+    GPIO_setAsOutputPin(Port3, P1);
+    GPIO_setOutputLowOnPin(Port3, P1);
+    GPIO_setAsOutputPin(Port3, P5);
+    GPIO_setOutputLowOnPin(Port3, P5);
+    GPIO_setAsOutputPin(Port1, P1);
+    GPIO_setOutputLowOnPin(Port1, P1);
+    GPIO_setAsOutputPin(Port5, P4);
+    GPIO_setOutputLowOnPin(Port5, P4);
+    GPIO_setAsOutputPin(Port5, P0);
+    GPIO_setOutputLowOnPin(Port5, P0);
+    GPIO_setAsOutputPin(Port5, P1);
+    GPIO_setOutputLowOnPin(Port5, P1);
+    GPIO_setAsOutputPin(Port5, P3);
+    GPIO_setOutputLowOnPin(Port5, P3);
+    GPIO_setAsOutputPin(Port1, P4);
+    GPIO_setOutputLowOnPin(Port1, P4);
 }//--END LedLow-------------------------------------------------------------------------------------
 
 //-Delay_init: Setup timer A for 1 second-----------------------------------------------------------
@@ -342,14 +345,7 @@ void ButtonResponse() {
 //-PatternA: Static pattern XOXOXOXO---------------------------------------------------------------
 void PatternA(){
     //Set High on Collumns
-    GPIO_setOutputHighOnPin(Port2, Pin2);
-    GPIO_setOutputLowOnPin(Port4, Pin0);
-    GPIO_setOutputHighOnPin(Port6, Pin3);
-    GPIO_setOutputLowOnPin(Port4, Pin6);
-    GPIO_setOutputHighOnPin(Port4, Pin7);
-    GPIO_setOutputLowOnPin(Port4, Pin4);
-    GPIO_setOutputHighOnPin(Port2, Pin5);
-    GPIO_setOutputLowOnPin(Port3, Pin0);
+    LED_Out = 0x0AA;
 }//--END PatternA--------------------------------------------------------------------------------
 
 //-PatternB: Flashing and counts up--------------------------------------------------------------
