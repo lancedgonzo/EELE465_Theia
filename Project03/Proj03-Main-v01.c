@@ -81,6 +81,7 @@
 #define P6 GPIO_PIN6
 #define P7 GPIO_PIN7
 
+//Function Declarations ------------------------------------------------------
 void ColInput();
 void CheckCol();
 void RowInput();
@@ -93,7 +94,9 @@ void PatternErrorUpdate();
 void ButtonResponse();
 void UpdateLED();
 void LedLow();
+//--------------------------------------------------------------------------
 
+//Vairable Declarations-----------------------------------------------------
 uint8_t Button = 0, LED_Out = 0, Pattern = 0;
 uint8_t PatternBCounter = 0;
 uint8_t PatternDCounter = 0;
@@ -104,6 +107,7 @@ uint8_t const Passcode[] = {KEY_1, KEY_2, KEY_3};
 bool CheckFlag = false;
 bool TimerFlag = false;
 int test; // arbitrary test register
+//-----------------------------------------------------------------------
 
 int main(void) {
     // Stop watchdog timer
