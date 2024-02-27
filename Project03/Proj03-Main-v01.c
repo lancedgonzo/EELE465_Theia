@@ -94,6 +94,7 @@ void PatternErrorUpdate();
 void ButtonResponse();
 void UpdateLED();
 void LedLow();
+void SwitchDebounce();
 //--------------------------------------------------------------------------
 
 //Vairable Declarations-----------------------------------------------------
@@ -145,6 +146,7 @@ int main(void) {
             CheckCol();
             CheckRow();
             ButtonResponse();
+            SwitchDebounce(); 
             CheckFlag = false;
             State++;
         }
@@ -452,6 +454,10 @@ void UpdateLED() {
     P3OUT = ((LED_Out & BIT7) == BIT7) ? (P3OUT | BIT1) : (P3OUT & ~BIT1);    
 }//End UpdateLED --------------------------------------------------------------------
 
+//-SwitchDebounce(): -------------------------------------------------------------------------
+void SwitchDebounce(){
+    for(i=0; i<1000; i++){}
+}//--END SwitchDebounce---------------------------------------------------------------
 
 //-- Interrupt Service Routines -----------------------------------------------------------
 //-ISR Port 2---------------------------------------------------------------------------
