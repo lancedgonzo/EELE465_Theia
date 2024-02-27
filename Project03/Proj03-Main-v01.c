@@ -236,13 +236,13 @@ void LedLow(){
     GPIO_setOutputLowOnPin(Port1, Pin4);
 }//--END LedLow-------------------------------------------------------------------------------------
 
-
+//-Delay_init: Setup timer A for 1 second-----------------------------------------------------------
 void delay_init(){
     // Configure Timer_A to generate interrupts every 1 second
     TB0CCTL0 = CCIE; 
     TB0CCR0 = 32767; 
     TB0CTL = TBSSEL_1 + MC_1 + TBCLR; 
-}
+}//--END Delay_init---------------------------------------------------------------------------------
 
 //-ColumnInput: Sets row pins as OUTPUT---------------------------------------------------------------------
 void ColumnInput(){
@@ -303,6 +303,7 @@ void RowInput(){
 
 }//--END RowInputs---------------------------------------------------------------------------------
 
+//-CheckRow:  Clear row bits, then toggle bits based on input-----------------------------------------
 void CheckRow() {
     // Set necessary pins as inputs and outputs for reading columns
     RowInput();
@@ -313,8 +314,9 @@ void CheckRow() {
     Button = ((P2IN & BIT2) == BIT2) ? (Button | BIT6) : (Button & ~BIT6);
     Button = ((P4IN & BIT0) == BIT0) ? (Button | BIT5) : (Button & ~BIT5);
     Button = ((P4IN & BIT6) == BIT6) ? (Button | BIT4) : (Button & ~BIT4);
-}
+}//--END CheckRow-----------------------------------------------------------------------------------
 
+//-ButtonResponse: Updating last button to current button-----------------------------------------------
 void ButtonResponse() {
     // Update last button with identified button pressed
     switch(Button) {
@@ -335,7 +337,7 @@ void ButtonResponse() {
         case KEY_C: LastButton = KEY_C; break;
         case KEY_D: LastButton = KEY_D; break;
     }
-}
+}//--End ButtonResponse
 
 //-PatternA: Static pattern XOXOXOXO---------------------------------------------------------------
 void PatternA(){
@@ -350,6 +352,7 @@ void PatternA(){
     GPIO_setOutputLowOnPin(Port3, Pin0);
 }//--END PatternA--------------------------------------------------------------------------------
 
+//-PatternB: Flashing and counts up--------------------------------------------------------------
 void PatternBUpdate() {
     // set clock for 1 Hz
     TB0CTL |= TBCLR + TBSSEL__ACLK + MC__UP + ID__1;
@@ -360,7 +363,7 @@ void PatternBUpdate() {
     // Count and reset on rollover
     PatternBCounter += 1;
     LED_Out = PatternBCounter;
-}
+}//--END PatternB
 
 //-PatternC: Scrolling Pattern ---------------------------------------------------------------
 void PatternC(){
@@ -388,6 +391,7 @@ void PatternC(){
     }
 }//--END PatternC--------------------------------------------------------------------------------
 
+//-PatternD: Scrolling double pattern------------------------------------------------------------
 void PatternDUpdate() {
     // Set timer for 2s and 2.25s 
     TB0CTL |= TBCLR + TBSSEL__ACLK + MC__UP + ID__1;
@@ -412,8 +416,9 @@ void PatternDUpdate() {
     PatternDCounter += 1;
     if (PatternDCounter == 6)
         PatternDCounter = 0;
-}
+}//--END PatternD--------------------------------------------------------------------------------
 
+//-PatternError: --------------------------------------------------------------------------
 void PatternErrorUpdate() {
     // set timer for 0.25s
     TB0CTL |= TBCLR + TBSSEL__ACLK + MC__UP + ID__1;
@@ -432,8 +437,9 @@ void PatternErrorUpdate() {
         Pattern = 0;
         TB0CCTL0 &= ~CCIE;
     }
-}
+}//--End PatternError------------------------------------------------------------------------
 
+//-Update LED: -------------------------------------------------------------------------
 void UpdateLED() {
     // Move LED_Out to led ports
     P1OUT = ((LED_Out & BIT0) == BIT0) ? (P1OUT | BIT4) : (P1OUT & ~BIT4);
@@ -444,25 +450,27 @@ void UpdateLED() {
     P1OUT = ((LED_Out & BIT5) == BIT5) ? (P1OUT | BIT1) : (P1OUT & ~BIT1);
     P3OUT = ((LED_Out & BIT6) == BIT6) ? (P3OUT | BIT5) : (P3OUT & ~BIT5);
     P3OUT = ((LED_Out & BIT7) == BIT7) ? (P3OUT | BIT1) : (P3OUT & ~BIT1);    
-}
+}//End UpdateLED --------------------------------------------------------------------
 
-//-- Interrupt Service Routines --------------------------
+
+//-- Interrupt Service Routines -----------------------------------------------------------
+//-ISR Port 2---------------------------------------------------------------------------
 #pragma vector = PORT2_VECTOR
 __interrupt void ISR_P2_Button_Pressed(void) {
     CheckFlag = true; // Tell system to check which key was pressed
     P2IFG &= ~BIT0;  // Clear Interrupt Flags
     P2IFG &= ~BIT2; 
-}
-//-- End ISR_P1_Button_Pressed ----------------
+}//-- End ISR_P1_Button_Pressed ----------------------------------------------------------
 
+//-ISR Port 4 ----------------------------------------------------------------------------
 #pragma vector = PORT4_VECTOR
 __interrupt void ISR_P4_Button_Pressed(void) {
     CheckFlag = true; // Tell system to check which key was pressed
     P4IV &= ~BIT0; // Clear Interrupt Flags
     P4IV &= ~BIT6;
-}
-//-- End ISR_P5_Button_Pressed ----------------
+}//-- End ISR_P5_Button_Pressed ----------------------------------------------------------
 
+//-ISR Timer B---------------------------------------------------------------------------
 #pragma vector=TIMER0_B0_VECTOR
 __interrupt void Timer_B_ISR(void){
     // If password hasn't been fully entered, and timer triggered set pattern to 5 and reset to state 0
@@ -474,13 +482,13 @@ __interrupt void Timer_B_ISR(void){
         TimerFlag = true;  
     // Clear interrupt flag
     TB0CCTL0 &= ~CCIFG; 
-}
-//-- End Timer_B_ISR ----------------
+}//-- End Timer_B_ISR ------------------------------------------------------------------
 
+//-ISR Timer B1 ------------------------------------------------------------------------
 #pragma vector=TIMER0_B1_VECTOR
 __interrupt void Timer_B1_ISR(void){
     LED_Out = 0x000; // turn off LEDs then disable interrupt and clear flag
     TB0CCTL1 &= ~CCIE;
     TB0CCTL1 &= ~CCIFG; 
-}
-//-- End Timer_B_ISR ----------------
+}//-- End Timer_B_ISR -----------------------------------------------------------------
+
