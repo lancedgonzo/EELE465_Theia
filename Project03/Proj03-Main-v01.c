@@ -81,15 +81,18 @@
 #define P6 GPIO_PIN6
 #define P7 GPIO_PIN7
 
+void ColInput();
 void CheckCol();
+void RowInput();
 void CheckRow();
-void PatternAUpdate();
+void PatternA();
 void PatternBUpdate();
-void PatternCUpdate();
+void PatternC();
 void PatternDUpdate();
 void PatternErrorUpdate();
 void ButtonResponse();
 void UpdateLED();
+void LedLow();
 
 uint8_t Button = 0, LED_Out = 0, Pattern = 0;
 uint8_t PatternBCounter = 0;
