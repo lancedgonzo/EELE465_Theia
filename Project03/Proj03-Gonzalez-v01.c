@@ -6,7 +6,7 @@
 	Summary:
 
 	Version Summary:
-        v01: Polled Keyboard Input 
+        v01: Polled Keyboard Input, Verified LED Output
          
 
 
@@ -30,6 +30,22 @@
 #include <driverlib.h>
 #include "msp430fr2355.h"
 #include "gpio.h"
+
+#define Port1 GPIO_PORT_P1  
+#define Port2 GPIO_PORT_P2
+#define Port3 GPIO_PORT_P3  
+#define Port4 GPIO_PORT_P4
+#define Port5 GPIO_PORT_P5 
+#define Port6 GPIO_PORT_P6
+
+#define Pin0 GPIO_PIN0
+#define Pin1 GPIO_PIN1
+#define Pin2 GPIO_PIN2
+#define Pin3 GPIO_PIN3
+#define Pin4 GPIO_PIN4
+#define Pin5 GPIO_PIN5
+#define Pin6 GPIO_PIN6
+#define Pin7 GPIO_PIN7
 
 int main(void){
 
@@ -57,24 +73,44 @@ int main(void){
     // GPIO_setOutputHighOnPin(GPIO_PORT_P3, GPIO_PIN1);
     // GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN2);
 
-    //Configure outputs on Collumns
-    GPIO_setAsOutputPin(GPIO_PORT_P3, GPIO_PIN6);
-    GPIO_setAsOutputPin(GPIO_PORT_P4, GPIO_PIN5);
-    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN1);
-    GPIO_setAsOutputPin(GPIO_PORT_P3, GPIO_PIN4);
+    // //Configure outputs on Collumns
+    // GPIO_setAsOutputPin(GPIO_PORT_P3, GPIO_PIN6);
+    // GPIO_setAsOutputPin(GPIO_PORT_P4, GPIO_PIN5);
+    // GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN1);
+    // GPIO_setAsOutputPin(GPIO_PORT_P3, GPIO_PIN4);
 
-    //Configure inputs on Rows
-    GPIO_setAsInputPinWithPullDownResistor(GPIO_PORT_P3, GPIO_PIN5);
-    GPIO_setAsInputPinWithPullDownResistor(GPIO_PORT_P1, GPIO_PIN3);
-    GPIO_setAsInputPinWithPullDownResistor(GPIO_PORT_P3, GPIO_PIN1);
-    GPIO_setAsInputPinWithPullDownResistor(GPIO_PORT_P1, GPIO_PIN2);
+    // //Configure inputs on Rows
+    // GPIO_setAsInputPinWithPullDownResistor(GPIO_PORT_P3, GPIO_PIN5);
+    // GPIO_setAsInputPinWithPullDownResistor(GPIO_PORT_P1, GPIO_PIN3);
+    // GPIO_setAsInputPinWithPullDownResistor(GPIO_PORT_P3, GPIO_PIN1);
+    // GPIO_setAsInputPinWithPullDownResistor(GPIO_PORT_P1, GPIO_PIN2);
+
+    // //Set High on Collumns
+    // GPIO_setOutputHighOnPin(GPIO_PORT_P3, GPIO_PIN6);
+    // GPIO_setOutputHighOnPin(GPIO_PORT_P4, GPIO_PIN5);
+    // GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN1);
+    // GPIO_setOutputHighOnPin(GPIO_PORT_P3, GPIO_PIN4);
+
+
+    //Configure outputs on LED PINS
+    GPIO_setAsOutputPin(Port2, Pin2);
+    GPIO_setAsOutputPin(Port4, Pin0);
+    GPIO_setAsOutputPin(Port6, Pin3);
+    GPIO_setAsOutputPin(Port4, Pin6);
+    GPIO_setAsOutputPin(Port4, Pin7);
+    GPIO_setAsOutputPin(Port4, Pin4);
+    GPIO_setAsOutputPin(Port2, Pin5);
+    GPIO_setAsOutputPin(Port3, Pin0);
 
     //Set High on Collumns
-    GPIO_setOutputHighOnPin(GPIO_PORT_P3, GPIO_PIN6);
-    GPIO_setOutputHighOnPin(GPIO_PORT_P4, GPIO_PIN5);
-    GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN1);
-    GPIO_setOutputHighOnPin(GPIO_PORT_P3, GPIO_PIN4);
-
+    GPIO_setOutputHighOnPin(Port2, Pin2);
+    GPIO_setOutputHighOnPin(Port4, Pin0);
+    GPIO_setOutputHighOnPin(Port6, Pin3);
+    GPIO_setOutputHighOnPin(Port4, Pin6);
+    GPIO_setOutputHighOnPin(Port4, Pin7);
+    GPIO_setOutputHighOnPin(Port4, Pin4);
+    GPIO_setOutputHighOnPin(Port2, Pin5);
+    GPIO_setOutputHighOnPin(Port3, Pin0);
 
     while(1){}
 
