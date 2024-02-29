@@ -51,19 +51,19 @@
 #define KEY_1 0x011 // 17
 #define KEY_2 0x012 // 18
 #define KEY_3 0x014 // 20
-#define KEY_4 0x021 
-#define KEY_5 0x022
-#define KEY_6 0x024
-#define KEY_7 0x041
-#define KEY_8 0x042
-#define KEY_9 0x044
-#define KEY_0 0x082
-#define KEY_POUND 0x084
-#define KEY_AST 0x081
-#define KEY_A 0x018
-#define KEY_B 0x028
-#define KEY_C 0x048
-#define KEY_D 0x088
+#define KEY_4 0x021 // 33
+#define KEY_5 0x022 // 34
+#define KEY_6 0x024 // 36
+#define KEY_7 0x041 // 65
+#define KEY_8 0x042 // 66
+#define KEY_9 0x044 // 68
+#define KEY_0 0x082 // 130
+#define KEY_POUND 0x084 // 132
+#define KEY_AST 0x081 // 129
+#define KEY_A 0x018 // 24
+#define KEY_B 0x028 // 40
+#define KEY_C 0x048 // 72
+#define KEY_D 0x088 // 136
 
 // Making ports and pins easier to reference
 #define Port1 GPIO_PORT_P1  
@@ -102,6 +102,7 @@ void SwitchDebounce();
 //Vairable Declarations-----------------------------------------------------
 uint8_t Button = 0, LED_Out = 0, Pattern = 0;
 uint8_t PatternBCounter = 0;
+uint8_t PatternCCounter = 0;
 uint8_t PatternDCounter = 0;
 uint8_t PatternECounter = 0;
 uint8_t i; 
@@ -276,9 +277,9 @@ void ColumnInput(){
     GPIO_setAsInputPinWithPullDownResistor(Port3, P0);
 
     //Set High on ROWS
-    GPIO_setOutputHighOnPin(Port2, GPIO_PIN0);
-    GPIO_setOutputHighOnPin(Port2, GPIO_PIN2);
-    GPIO_setOutputHighOnPin(Port4, GPIO_PIN0);
+    GPIO_setOutputHighOnPin(Port2, P0);
+    GPIO_setOutputHighOnPin(Port2, P2);
+    GPIO_setOutputHighOnPin(Port4, P0);
     GPIO_setOutputHighOnPin(Port4, GPIO_PIN6);
 }//--END ColumnInput----------------------------------------------------------------------------------------
 
@@ -384,7 +385,7 @@ void PatternC(){
     TB0CCTL0 &= ~CCIFG;
 
     // Count and reset on rollover
-    switch(PatternDCounter) {
+    switch(PatternCCounter) {
         case 0: LED_Out = 0x7F; break;
         case 1: LED_Out = 0xBF; break;
         case 2: LED_Out = 0xDF; break;
@@ -394,9 +395,9 @@ void PatternC(){
         case 6: LED_Out = 0xFD; break; 
         case 7: LED_Out = 0xFE; break;
     }
-    PatternDCounter += 1;
-    if (PatternDCounter == 7){
-        PatternDCounter = 0;
+    PatternCCounter += 1;
+    if (PatternCCounter == 7){
+        PatternCCounter = 0;
     }
 }//--END PatternC--------------------------------------------------------------------------------
 
