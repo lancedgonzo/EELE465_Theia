@@ -93,6 +93,8 @@ void PatternDUpdate();
 void PatternErrorUpdate();
 void ButtonResponse();
 void UpdateLED();
+void LedOut();
+void LedHigh();
 void LedLow();
 void SwitchDebounce();
 //--------------------------------------------------------------------------
@@ -102,9 +104,10 @@ uint8_t Button = 0, LED_Out = 0, Pattern = 0;
 uint8_t PatternBCounter = 0;
 uint8_t PatternDCounter = 0;
 uint8_t PatternECounter = 0;
+uint8_t i; 
 uint8_t State = 0; // 0 - wait for key, 1-3 - correct button pressed for password, 
 uint8_t LastButton = 0; // tracker of last button pressed
-uint8_t const Passcode[] = {KEY_1, KEY_2, KEY_3};
+uint8_t const Passcode[] = {KEY_1, KEY_5, KEY_3};
 bool CheckFlag = false;
 bool TimerFlag = false;
 int test; // arbitrary test register
@@ -115,8 +118,9 @@ int main(void) {
     WDT_A_hold(WDT_A_BASE);
 
     // Initialize LED and keyboard
-    LedLow();
+    LedOut();
     RowInput();
+    LedHigh();
 
     // Clear interrupt flag bits
     P2IFG &= ~BIT0; 
@@ -141,6 +145,7 @@ int main(void) {
 
     __enable_interrupt();
 
+
     while(1) {
         if (CheckFlag) {
             CheckCol();
@@ -159,7 +164,7 @@ int main(void) {
                         case 3: PatternC(); break;
                         case 4: PatternDUpdate(); break;
                         case 5: PatternErrorUpdate(); break;
-                        default: break;
+                        default: LED_Out = 0x0FF; break;
                     }
                     TimerFlag = false;
                 }
@@ -188,6 +193,7 @@ int main(void) {
             case 5: // second key entered. If correct progress, otherwise reset
                 if (LastButton == Passcode[2]) {
                     State++;
+                    LedLow();
                 }
                 else {
                     State=0;
@@ -224,26 +230,27 @@ int main(void) {
     }
 }
 
-//-LED Init Low: Configures LED ports as output and LOW----------------------------------------------
-void LedLow(){
-    //LED Bar Output initalizing as low
+//-LED Out: Configures LED ports as output ----------------------------------------------
+void LedOut(){
+    //LED Bar ports as  Output 
     GPIO_setAsOutputPin(Port3, P1);
-    GPIO_setOutputLowOnPin(Port3, P1);
     GPIO_setAsOutputPin(Port3, P5);
-    GPIO_setOutputLowOnPin(Port3, P5);
     GPIO_setAsOutputPin(Port1, P1);
-    GPIO_setOutputLowOnPin(Port1, P1);
     GPIO_setAsOutputPin(Port5, P4);
-    GPIO_setOutputLowOnPin(Port5, P4);
     GPIO_setAsOutputPin(Port5, P0);
-    GPIO_setOutputLowOnPin(Port5, P0);
     GPIO_setAsOutputPin(Port5, P1);
-    GPIO_setOutputLowOnPin(Port5, P1);
     GPIO_setAsOutputPin(Port5, P3);
-    GPIO_setOutputLowOnPin(Port5, P3);
     GPIO_setAsOutputPin(Port1, P4);
-    GPIO_setOutputLowOnPin(Port1, P4);
-}//--END LedLow-------------------------------------------------------------------------------------
+   
+}//--END LedOut-------------------------------------------------------------------------------------
+
+void LedLow(){
+    LED_Out = 0x00; 
+}
+
+void LedHigh(){
+    LED_Out = 0x0FF; 
+}
 
 //-Delay_init: Setup timer A for 1 second-----------------------------------------------------------
 void delay_init(){
@@ -429,9 +436,9 @@ void PatternErrorUpdate() {
     TB0CCTL0 |= CCIE;
     TB0CCTL0 &= ~CCIFG;
     // flash LEDs 3 times before turning off interrupt
-    LED_Out = 0x000; 
+    LED_Out = 0x0FF; 
     if (PatternECounter == 0 || PatternECounter == 2 || PatternECounter == 4) {
-        LED_Out = 0x0FF;
+        LED_Out = 0x000;
     }
     PatternECounter += 1;
     if (PatternECounter == 6) {
@@ -456,7 +463,7 @@ void UpdateLED() {
 
 //-SwitchDebounce(): -------------------------------------------------------------------------
 void SwitchDebounce(){
-    for(i=0; i<1000; i++){}
+    for(i=0; i<10; i++){}
 }//--END SwitchDebounce---------------------------------------------------------------
 
 //-- Interrupt Service Routines -----------------------------------------------------------
