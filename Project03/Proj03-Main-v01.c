@@ -165,7 +165,7 @@ int main(void) {
                         case 3: PatternC(); break;
                         case 4: PatternDUpdate(); break;
                         case 5: PatternErrorUpdate(); break;
-                        default: LED_Out = 0x0FF; break;
+                        default: LED_Out = 0x00; break;
                     }
                     TimerFlag = false;
                 }
@@ -194,7 +194,7 @@ int main(void) {
             case 5: // second key entered. If correct progress, otherwise reset
                 if (LastButton == Passcode[2]) {
                     State++;
-                    LedLow();
+                    LED_Out = 0x00;
                 }
                 else {
                     State=0;
@@ -216,7 +216,7 @@ int main(void) {
                         Pattern = 4;  
                         break;
                     // Relock system if * is pressed
-                    case KEY_AST: State = 0; Pattern = 0; LED_Out = 0x00; break;
+                    case KEY_AST: State = 0; Pattern = 0; LED_Out = 0xFF; break;
                     // Otherwise disable pattern
                     default: Pattern = 0; break;
                 }
