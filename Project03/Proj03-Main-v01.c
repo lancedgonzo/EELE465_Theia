@@ -146,7 +146,6 @@ int main(void) {
 
     __enable_interrupt();
 
-
     while(1) {
         if (CheckFlag) {
             CheckCol();
