@@ -86,6 +86,7 @@ void ColInput();
 void CheckCol();
 void RowInput();
 void CheckRow();
+void CheckButton();
 void PatternA();
 void PatternBUpdate();
 void PatternC();
@@ -149,11 +150,7 @@ int main(void) {
 
     while(1) {
         if (CheckFlag) {
-            CheckCol();
-            CheckRow();
-            ButtonResponse();
-            SwitchDebounce(); 
-            CheckFlag = false;
+            CheckButton();
             State++;
         }
         switch(State) {
@@ -337,6 +334,15 @@ void CheckRow() {
     Button = ((P4IN & BIT6) == BIT6) ? (Button | BIT4) : (Button & ~BIT4);
 }//--END CheckRow-----------------------------------------------------------------------------------
 
+//-CheckButton: Call functions to check which button was pressed, save it in last button and debounce.
+void CheckButton() {
+    CheckCol();
+    CheckRow();
+    ButtonResponse();
+    SwitchDebounce(); 
+    CheckFlag = false;
+}//--END CheckButton-----------------------------------------------------------------------------------
+
 //-ButtonResponse: Updating last button to current button-----------------------------------------------
 void ButtonResponse() {
     // Update last button with identified button pressed
@@ -383,7 +389,7 @@ void PatternBUpdate() {
 void PatternC(){
     // Set timer for 2s
     TB0CTL |= TBCLR + TBSSEL__ACLK + MC__UP + ID__1;
-    TB0CCR0 = 36864;
+    TB0CCR0 = 32768;
     TB0R = 0;
     TB0CCTL0 |= CCIE;
     TB0CCTL0 &= ~CCIFG;
