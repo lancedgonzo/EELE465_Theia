@@ -209,7 +209,11 @@ int main(void) {
                             PatternBCounter = 0;
                         Pattern = 2;  
                         break;
-                    case KEY_C: Pattern = 3;  break;
+                    case KEY_C:
+                        if (Pattern == 3)
+                            PatternCCounter = 0;
+                        Pattern = 3;
+                        break;
                     case KEY_D: // Reset pattern if already playing, otherwise switch to pattern D
                         if (Pattern == 4)
                             PatternDCounter = 0;
