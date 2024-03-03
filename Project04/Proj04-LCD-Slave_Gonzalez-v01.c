@@ -7,25 +7,17 @@
 	Summary:
 
 	Version Summary:
-        v01:
+        v01: I2C as slave setup
 
     Ports Map: 
-        I2C:
-            P1.0 STE
-            P1.1 CLK
-            P1.2 SDA
-            P1.3 SCL
+
 
 
 	Important Variables/Registers:
-	    Button 0x76543210
-            0-3 Col
-            4-7 Row
-        LED_Out
-            1:1 LED
+	
 
     MSP Errors:
-        P4.5 Inconsistent Input?
+
 	Todo:
 		
 -----------------------------------------------------------------------------------------------------------------------*/
@@ -39,9 +31,11 @@ int main(void) {
     // Stop watchdog timer
     WDT_A_hold(WDT_A_BASE);
 
-    // Disable the GPIO power-on default high-impedance mode
-    // to activate previously configured port settings
-    PMM_unlockLPM5();
+    //Port Initialization
+
+    //I2C as slave, slave address, and more initialziation
+
+    PMM_unlockLPM5();           //Unlock Low Power Mode for DIO enable
 
     while(1)
     {
