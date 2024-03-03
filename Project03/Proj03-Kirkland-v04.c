@@ -134,6 +134,7 @@ int main(void) {
     GPIO_setOutputHighOnPin(Port4, P4);
     GPIO_setOutputHighOnPin(Port2, P5);
     GPIO_setOutputHighOnPin(Port3, P0);
+    
     // Clear interrupt flag bits
     P2IFG &= ~BIT0; 
     P2IFG &= ~BIT2;
