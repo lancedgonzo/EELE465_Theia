@@ -33,49 +33,95 @@
 #include "gpio.h"
 #include "msp430fr2355.h"
 
-    // Data to be sent
-    bool txEmptyFlag = true;
-    uint8_t data = 0;
-    uint8_t i = 0;
-    void i2c_init();
+// Data to be sent
+bool txEmptyFlag = true;
+uint8_t data = 0;
+uint8_t i = 0;
+void I2C_SlaveInit();
 
 int main(void) {
     // Stop watchdog timer
     WDT_A_hold(WDT_A_BASE);
 
-    UCB0IE |= UCTXIE0;               // enable TX-interrupt
-    GIE;                            // general interrupt enable
+    P1SEL0 |= BIT3;
+    P1SEL1 &= ~BIT3;
 
+    P1SEL0 |= BIT2;
+    P1SEL1 &= ~BIT2;
 
-    i2c_init(); // Initialize I2C communication
+    P4SEL0 |= BIT7;
+    P4SEL1 &= ~BIT7;
+
+    P4SEL0 |= BIT6;
+    P4SEL1 &= ~BIT6;
+
+    I2C_MasterInit(); // Initialize I2C communication
+    UCB0IE |= UCRXIE0 + UCTXIE0;
+    __enable_interrupt();
+
     
     // Disable the GPIO power-on default high-impedance mode
     // to activate previously configured port settings
     PMM_unlockLPM5();
     
     while (1) {
-        i2c_init();
-        UCB0CTL1 |= UCTR + UCTXSTT; // I2C TX, start condition
-        for (i = 0; i < 7; i++) {
-            UCB0TXBUF = data;   // Send byte
-            while (~txEmptyFlag) {}
-            data += 3; // Increment data by 3 for next transmission
+        UCB1TBCNT = 1;
+        UCB1I2CSA = 0x048;
+        UCB1CTLW0 |= UCTR;
+        UCB1CTLW0 |= UCTXSTT;
+        for (i = 65000; i > 0; i--) {
+
         }
-        UCB0CTL1 |= UCTXSTP; // I2C stop condition
+        UCB1TXBUF = 'R';
+//        if (txEmptyFlag) {
+//            txEmptyFlag = false;
+//        UCB0CTLW0 |= UCSWRST;           // put eUSCI_B in reset state
+//        UCB0CTL1 |= UCTR + UCTXSTT; // I2C TX, start condition
+//        UCB0TXBUF = 0x07;
+//        UCB0CTLW0 &= ~UCSWRST;          // put eUSCI_B in reset state
+//        }
+//        UCB0IE |= UCTXIE+UCRXIE;        // Enable transmit and receive interrupts
+
+//        for (i = 0; i < 7; i++) {
+//            UCB0TXBUF = data;   // Send byte
+//            while (~txEmptyFlag) {}
+//            data += 3; // Increment data by 3 for next transmission
+//        }
+//        UCB0CTL1 |= UCTXSTP; // I2C stop condition
 
     }
 }
 
+void I2C_SlaveInit() {
+    UCB0CTLW0 |= UCSWRST;           // put eUSCI_B in reset state
+    UCB0CTLW0 |= UCMODE_3;  // I2C master mode
+    UCB0CTLW0 &= ~UCMST;
+    UCB0I2COA0 = 0x0048;
+    UCB0I2COA0 |= UCOAEN;
+    UCB0CTLW0 &= ~UCTR;
+    UCB0CTLW1 &= ~UCASTP0;
+    UCB0CTLW1 &= ~UCASTP1;
+    UCB0CTLW0 &= ~UCSWRST;          // put eUSCI_B in reset state
+}
 
-void i2c_init() {
-    UCB0CTL1 |= UCSWRST;            // put eUSCI_B in reset state
-    UCB0CTLW0 |= UCMODE_3 + UCMST;  // I2C master mode
-    UCB0BRW = 0x0008;               // baud rate = SMCLK / 8
-    UCB0CTLW1 = UCASTP_2;           // automatic STOP assertion
-    UCB0TBCNT = 0x07;               // TX 7 bytes of data
-    UCB0I2CSA = 0x0012;             // address slave is 12hex
-    P1SEL1 |= 0x00C;                 // configure I2C pins (device specific)
-    UCB0CTL1 &= ~UCSWRST;           // eUSCI_B in operational state
+void I2C_MasterInit() {
+    UCB1CTLW0 |= UCSWRST;           // put eUSCI_B in reset state
+    UCB1CTLW0 |= UCMODE_3 + UCMST;  // I2C master mode
+    UCB1CTLW0 |= UCTR;
+    UCB1BRW = 0x0008;               // baud rate = SMCLK / 8
+    UCB1CTLW1 = UCASTP_2;           // automatic STOP assertion
+
+
+    UCB0CTLW0 &= ~UCSWRST;          // put eUSCI_B in reset state
+    UCB0IE |= UCTXIE+UCRXIE;        // Enable transmit and receive interrupts
+}
+
+void I2C_start() {
+    UCB0CTLW0 |= UCSWRST;           // put eUSCI_B in reset state
+    UCB0CTL1 |= UCTXSTT;     // I2C TX, start condition
+    UCB0CTLW0 &= ~UCSWRST;          // put eUSCI_B in reset state
+    UCB0IE |= UCTXIE+UCRXIE;        // Enable transmit and receive interrupts
+
 }
 
 #pragma vector = USCI_B0_VECTOR 
