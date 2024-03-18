@@ -35,14 +35,17 @@
 //----- Library/Header Includes -----------------------------------------------
 #include "msp430fr2355.h"
 #include "msp430fr2310.h"
+#include <msp430.h>
 // #include <driverlib.h>
 //-----------------------------------------------------------------------------
 
-//----- MACRO definitions -----------------------------------------------------
+//----- MACRO definitions and Global Variables --------------------------------
 
 //-----------------------------------------------------------------------------
 
-//----- Global Variables ------------------------------------------------------
+//----- Function Declarations -------------------------------------------------
+void I2C_slaveRx(); 
+
 
 //-----------------------------------------------------------------------------
 
@@ -70,7 +73,7 @@ int main(void) {
 
 //----- Subroutines & Function Definitions ------------------------------------
 //- I2C_slaveRx: Initalizes the controller as a slave with address 0x00
-int I2C_slaveRx(void){
+void I2C_slaveRx(void){
     UCB0CTL1 |= UCSWRST;        //eUSCI-B0 software reset
     UCB0CTLW0 |= UCMODE_3;      //I2C slave mode 
     UCB0CTLW0 &= ~UCMST;           //again?
@@ -93,6 +96,21 @@ int I2C_slaveRx(void){
 
     UCB0IE |= UCRXIE;  //Enable Tx and Rx interrupt 
 }//--END I2C_slaveRx-----------------------------------------------------------
+
+//-LCD Latch: -----------------------------------------------------------------
+void latch(){
+    P2OUT |= BIT0;      // set enable
+
+    __delay_cycles(5000)
+
+    P2OUT &= ~BIT0;    // clear enable
+}//--END LCD latch ------------------------------------------------------------
+
+//-CommandLCD------------------------------------------------------------------
+void CommandLCD(void){
+    
+
+}
 
 //-----------------------------------------------------------------------------
 
