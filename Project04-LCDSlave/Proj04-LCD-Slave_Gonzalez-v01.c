@@ -34,9 +34,13 @@
 -----------------------------------------------------------------------------*/
 
 //----- Library/Header Includes -----------------------------------------------
-#include "msp430fr2355.h"
-// #include "msp430fr2310.h"
 #include <msp430.h>
+// #include "msp430fr2355.h"
+#include "msp430fr2310.h"
+
+#include <stdint.h>
+#include "_stdint.h"
+// #include <msp430.h>
 //-----------------------------------------------------------------------------
 
 //----- MACRO definitions and Global Variables --------------------------------
