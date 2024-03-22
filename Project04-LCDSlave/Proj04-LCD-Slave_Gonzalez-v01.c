@@ -7,20 +7,21 @@
 
 	Version Summary:
         v01: I2C as slave setup
+        v02: LCD communication
 
     Ports Map: 
         2310 LCD Slave
-            P1.2 - I2C SDA
-            P1.3 - I2C SCL
+            P1.2 - I2C SDA  (PIN 16)
+            P1.3 - I2C SCL  (PIN 15)
 
-            P1.4 - DB0 = 11
-            P1.5 - DB1 = 12
-            P1.6 - DB2 = 13
-            P1.7 - DB3 = 14
+            P1.4 - DB0      (PIN 14)
+            P1.5 - DB1      (PIN 13)
+            P1.6 - DB2      (PIN 11)
+            P1.7 - DB3      (PIN 10)
 
-            P2.0 - E = 6
-            P2.6 - RS = 4
-            P2.7 - R/W = 5 (Hardwired pull-down)
+            P2.0 - E = 6    (PIN 9)
+            P2.6 - RS = 4   (PIN 8)
+            P2.7 - R/W = 5  (PIN 7) 
 
 
 	Important Variables/Registers:
@@ -39,13 +40,26 @@
 //-----------------------------------------------------------------------------
 
 //----- MACRO definitions and Global Variables --------------------------------
-#define LCD_RS BIT7  // Register select pin 
-#define LCD_EN BIT6  // Enable pin
+//Port2
+#define LCD_RS BIT6  // Register select pin 
+#define LCD_EN BIT0  // Enable pin
+#define LCD_RW BIT7  // Read/Write pin
 
+//Port1
 #define LCD_D4 BIT4  // Data line 4
 #define LCD_D5 BIT5  // Data line 5
 #define LCD_D6 BIT6  // Data line 6
 #define LCD_D7 BIT7  // Data line 7
+
+const clearDisplay =      0b00000001;
+const returnHome =        0b00000010;
+const entryMode =         0b00000110;
+const displayCursorOn =   0b00001111; //cursor on and blink
+const displayOn =         0b00001100; //cursor off and no blink
+const displayOff =        0b00001000;
+const fourBitMode  =      0b00101100; //function set NF
+// char setDDRAM  =         0b10000000; // | this with whatever addy then driveChar
+
 //-----------------------------------------------------------------------------
 
 //----- Function Declarations -------------------------------------------------
@@ -60,13 +74,6 @@ int main(void) {
 
     // Stop watchdog timer
     WDTCTL = WDTPW | WDTHOLD;   // stop watchdog timer
-
-    //Port Initialization
-    P2DIR |= (LCD_RS | LCD_EN);  
-    P1DIR |= (LCD_D4 | LCD_D5 | LCD_D6 | LCD_D7); // Set LCD control pins as output
-
-    P2OUT &= ~(LCD_RS | LCD_EN);
-    P1OUT &= ~(LCD_D4 | LCD_D5 | LCD_D6 | LCD_D7); // Initialize control pins to low
 
     LCD_init(); // Initialize LCD
 
@@ -105,6 +112,28 @@ int main(void) {
 //     UCB0IE |= UCRXIE;  //Enable Tx and Rx interrupt 
 // }//--END I2C_slaveRx-----------------------------------------------------------
 
+void LCD_init() {
+    //Port Initialization
+    P2DIR |= (LCD_RS | LCD_EN | LCD_RW);  
+    P1DIR |= (LCD_D4 | LCD_D5 | LCD_D6 | LCD_D7); // Set LCD control pins as output
+
+    P2OUT &= ~(LCD_RS | LCD_EN | LCD_RW);
+    P1OUT &= ~(LCD_D4 | LCD_D5 | LCD_D6 | LCD_D7); // Initialize control pins to low
+
+    delay(30);          // Wait >15ms after VDD rises to 4.5V
+    LCD_command(0b00110011);
+    LCD_command(0b00110010);
+
+    LCD_command(fourBitMode); 
+    LCD_command(displayOff); 
+    LCD_command(clearDisplay);
+    LCD_command(entryMode);
+    LCD_command(displayOn); 
+
+    LCD_data('H');
+
+}
+
 //-LCD Latch: -----------------------------------------------------------------
 void latch(){
     P2OUT |= LCD_EN;      // set enable
@@ -113,70 +142,22 @@ void latch(){
     delay(50);
 }//--END LCD latch ------------------------------------------------------------
 
-void LCD_command(unsigned char command) {
-
-    P1OUT = (command & 0xF0);
-
+void LCD_command(const command) {
     P2OUT &= ~LCD_RS; // Set RS low for command
+    P1OUT = (command & 0xF0);
     latch();
     P1OUT = ((command & 0x0F) << 4);
     latch(); 
 }
 
-void LCD_data(unsigned char data) {
-    P1OUT = (data & 0xF0);
+void LCD_data(char data) {
     P2OUT |= LCD_RS;  // Set RS high for data
-
-    P2OUT |= LCD_EN;  // Set E high
-    delay(30);         // Delay
-    P2OUT &= ~LCD_EN; // Set E low
-    delay(30);         // Delay
-
+    P1OUT = (data & 0xF0);
+    latch(); 
     P1OUT = ((data & 0x0F) << 4);
-    P2OUT |= LCD_EN;  // Set E high
-    delay(30);         // Delay
-    P2OUT &= ~LCD_EN; // Set E low
-    delay(30);         // Delay
-
+    latch(); 
 }
 
-void LCD_init() {
-    delay(30);          // Wait >15ms after VDD rises to 4.5V
-    LCD_command(0x30);  // Function set: 8-bit mode
-    delay(30);           // Wait >4.1ms
-    LCD_command(0x30);  // Function set: 8-bit mode
-    delay(30);           // Wait >100us
-    LCD_command(0x30);  // Function set: 8-bit mode
-    LCD_command(0x20);  // Function set: 4-bit mode
-    LCD_command(0x28);  // Function set: 4-bit mode, 2 lines, 5x8 font
-    LCD_command(0x0C);  // Display control: Display on, cursor off, blink off
-    LCD_command(0x06);  // Entry mode set: Increment cursor, no shift
-    LCD_command(0x01);  // Clear display
-    delay(30);           // Wait >1.64ms for clear
-}
-
-void LCD_clear() {
-    LCD_command(0x01);  // Clear display
-    delay(2);           // Wait >1.64ms for clear
-}
-
-void LCD_setCursor(unsigned char row, unsigned char col) {
-    unsigned char address = (row == 0 ? 0x80 : 0xC0) + col;
-    LCD_command(address);
-}
-
-void LCD_print(char *str) {
-    while (*str){
-        LCD_data(*str++);
-    }
-}
-
-// //-LCD Transmit: --------------------------------------------------------------
-// void LCDTx(char Output){
-//     P1OUT = (Output & 0xF0);                //Transmit Upper bits of Output
-//     Latch(); 
-//     P1Out = ((Output & 0x0F) << 4);         //Transmit Lower bits of Output 
-// }//--END LCD Transmit ---------------------------------------------------------
 
 //-Delay: --------------------------------------------------------------------
 void delay(unsigned int ms) {
@@ -186,7 +167,6 @@ void delay(unsigned int ms) {
     }
 }//--END LCD Transmit ---------------------------------------------------------
 
-//-----------------------------------------------------------------------------
 
 // //----- Interrupt Service Routines --------------------------------------------
 // //- eUSCI_B0 ISR --------------------------------------------------------------
