@@ -37,7 +37,7 @@
 #include <msp430.h>
 #include "msp430fr2310.h"
 
-#include <stdint.h>
+// #include <stdint.h>
 //-----------------------------------------------------------------------------
 
 //----- MACRO definitions and Global Variables --------------------------------
@@ -64,10 +64,12 @@ const char setDDRAM  =         0b10000000; // | this with whatever addy then dri
 //-----------------------------------------------------------------------------
 
 //----- Function Declarations -------------------------------------------------
-// void latch(); 
-// void LCD_init();
-// void LCD_command(const); 
-// void LCD_data(char);  
+void latch(); 
+void LCD_init();
+void LCD_command(char); 
+void LCD_data(char);  
+void delay(); 
+I2C_slaveRx(); 
 
 //-----------------------------------------------------------------------------
 
@@ -76,7 +78,9 @@ int main(void) {
     // Stop watchdog timer
     WDTCTL = WDTPW | WDTHOLD;   // stop watchdog timer
 
+    I2C_slaveRx(); 
     LCD_init(); // Initialize LCD
+    PM5CTL0 &= ~LOCKLPM5;
 
     while (1){}
 
@@ -85,32 +89,32 @@ int main(void) {
 
 
 //----- Subroutines & Function Definitions ------------------------------------
-// //- I2C_slaveRx: Initalizes the controller as a slave with address 0x00
-// void I2C_slaveRx(void){
-//     UCB0CTL1 |= UCSWRST;        //eUSCI-B0 software reset
-//     UCB0CTLW0 |= UCMODE_3;      //I2C slave mode 
-//     UCB0CTLW0 &= ~UCMST;           //again?
-//     UCB0I2COA0 = 0X0012;        //Slave address
-//     UCB0I2COA0 |= UCOAEN;       //Enables I2C own address
-//     UCB0CTLW0 &= ~UCTR;         //clears transmit mode select bit
-//     // P1SEL |= 0x06;              //configure I2C pins P1.2 P1.3
-//     UCB0CTLW1 &= ~UCASTP1;      //clear auto stop bit
-//     UCB0CTLW1 &= ~UCASTP0;
+//- I2C_slaveRx: Initalizes the controller as a slave with address 0x00
+void I2C_slaveRx(void){
+    UCB0CTLW0 |= UCSWRST;        //eUSCI-B0 software reset
+    UCB0CTLW0 |= UCMODE_3;      //I2C slave mode 
+    UCB0CTLW0 &= ~UCMST;           //again?
+    UCB0CTLW0 &= ~UCTR;         //clears transmit mode select bit
+    UCB0I2COA0 = 0X046;        //Slave address
+    UCB0I2COA0 |= UCOAEN;       //Enables I2C own address
+    UCB0CTLW1 &= ~UCASTP1;      //clear auto stop bit
+    UCB0CTLW1 &= ~UCASTP0;
 
-//     //Port Setup
-//     P1SEL1 &= ~BIT3; 
-//     P1SEL1 &= ~BIT2; 
+    //Port Setup
+    P1SEL1 &= ~BIT3; 
+    P1SEL1 &= ~BIT2; 
 
-//     P1SEL0 |= BIT3; 
-//     P1SEL0 |= BIT2; 
+    P1SEL0 |= BIT3; 
+    P1SEL0 |= BIT2; 
 
-//     // UCB0CTLW1 |= UCASTP_2;      //enable stop bit mode 2
-//     UCB0CTL1 &= ~UCSWRST;       //eUSCI-B0 in operational state 
+    UCB0CTLW1 |= UCASTP_2;      //enable stop bit mode 2
+    UCB0CTL1 &= ~UCSWRST;       //eUSCI-B0 in operational state 
 
-//     UCB0IE |= UCRXIE;  //Enable Tx and Rx interrupt 
-// }//--END I2C_slaveRx-----------------------------------------------------------
+    UCB0IE |= UCRXIE0;  //Enable Tx and Rx interrupt 
+    __enable_interrupt(); 
+}//--END I2C_slaveRx-----------------------------------------------------------
 
-void LCD_init() {
+void LCD_init(){
     //Port Initialization
     P2DIR |= (LCD_RS | LCD_EN | LCD_RW);  
     P1DIR |= (LCD_D4 | LCD_D5 | LCD_D6 | LCD_D7); // Set LCD control pins as output
@@ -122,7 +126,7 @@ void LCD_init() {
     // LCD_command(0b00110011);
     // LCD_command(0b00110010);
 
-    LCD_command(0x00 | setDDRAM);
+    // LCD_command(0x00 | setDDRAM);
 
     LCD_command(fourBitMode); 
     LCD_command(displayOff); 
@@ -131,7 +135,8 @@ void LCD_init() {
     LCD_command(displayOn); 
 
     LCD_data('H');
-    LCD_command(0x40 | setDDRAM);
+    LCD_data('Y')
+    // LCD_command(0x40 | setDDRAM);
 }
 
 //-LCD Latch: -----------------------------------------------------------------
@@ -142,7 +147,7 @@ void latch(){
     delay(50);
 }//--END LCD latch ------------------------------------------------------------
 
-void LCD_command(const char command) {
+void LCD_command(char command){
     P2OUT &= ~LCD_RS; // Set RS low for command
     P1OUT = (command & 0xF0);
     latch();
@@ -150,7 +155,7 @@ void LCD_command(const char command) {
     latch(); 
 }
 
-void LCD_data(char data) {
+void LCD_data(char data){
     P2OUT |= LCD_RS;  // Set RS high for data
     P1OUT = (data & 0xF0);
     latch(); 
@@ -158,18 +163,9 @@ void LCD_data(char data) {
     latch(); 
 }
 
-void enter_low_power_mode() {
-    // Configure MSP430 to enter low power mode
-    __bis_SR_register(LPM4_bits + GIE); // Enter LPM4 with interrupts enabled
-}
-
-void exit_low_power_mode() {
-    // Exit low power mode
-    __bic_SR_register_on_exit(LPM4_bits); // Exit LPM4
-}
 
 //-Delay: --------------------------------------------------------------------
-void delay(unsigned int ms) {
+void delay(unsigned int ms){
     unsigned int i;
     for (i = 0; i < ms; i++){
         __delay_cycles(1000); // Assuming 1MHz clock
@@ -177,42 +173,10 @@ void delay(unsigned int ms) {
 }//--END Delay --------------------------------------------------------------
 
 
-// //----- Interrupt Service Routines --------------------------------------------
-// //- eUSCI_B0 ISR --------------------------------------------------------------
-// #pragma vector = USCI_B0_VECTOR 
-// __interrupt void USCI_B0_ISR(void) {
-//     switch(__even_in_range(UCB0IV,0x1e))    {
-//         case 0x00: break;   // No interrupts
-//         case 0x02: break;   // Arbitration lost ALIFG
-//         case 0x04: break;   // No Ack           NACKIFG
-//         case 0x06: break;   // Start Recieved   STTIFG
-//         case 0x08: break;   // Stop Recieved    STPIFG
-//         case 0x0a: break;   // Slave 3 recieved RXIFG3
-//         case 0x0c: break;   // Slave 3 transmit empty TXIFG3
-//         case 0x0e: break;   // Slave 2 recieved RXIFG2
-//         case 0x10: break;   // Slave 2 transmit empty TXIFG2
-//         case 0x12: break;   // Slave 1 recieved RXIFG1
-//         case 0x14: break;   // Slave 1 transmit empty TXIFG1
-//         case 0x16: break;   // Data recieved RXIFG0
-//         // case 0x18: txEmptyFlag = true; break;   // Transmit buffer empty TXIFG0
-//         case 0x1a: break;   // byte counter zero BCNTIFG
-//         case 0x1c: break;   // Vector 28: clock low time-out
-//         case 0x1e: break;   // Vector 30: 9th bit
-//         default:   break;
-//     }
-// }//--END eUSCI_B0 ISR----------------------------------------------------------
-// Interrupt service routine for I2C
-#pragma vector = EUSCI_B0_VECTOR 
-__interrupt void EUSCI_B0_I2C_ISR(void) {
-    switch (__even_in_range(UCB0IV, USCI_I2C_UCBIT9IFG)) {
-        // Handle I2C interrupt events
-        case USCI_I2C_UCRXIFG0:
-            // Data received, update LCD
-            LCD_data(UCB0RXBUF);
-            exit_low_power_mode(); // Exit low power mode upon receiving data
-            break;
-        default:
-            break;
-    }
-}
+// // Interrupt service routine for I2C
+// #pragma vector = EUSCI_B0_VECTOR 
+// __interrupt void EUSCI_B0_I2C_ISR(void) {
+//         LCD_data(UCB0RXBUF);
+// }
 //-----------------------------------------------------------------------------
+
