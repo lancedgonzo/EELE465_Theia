@@ -35,12 +35,9 @@
 
 //----- Library/Header Includes -----------------------------------------------
 #include <msp430.h>
-// #include "msp430fr2355.h"
 #include "msp430fr2310.h"
 
 #include <stdint.h>
-#include "_stdint.h"
-// #include <msp430.h>
 //-----------------------------------------------------------------------------
 
 //----- MACRO definitions and Global Variables --------------------------------
@@ -55,34 +52,31 @@
 #define LCD_D6 BIT6  // Data line 6
 #define LCD_D7 BIT7  // Data line 7
 
-const clearDisplay =      0b00000001;
-const returnHome =        0b00000010;
-const entryMode =         0b00000110;
-const displayCursorOn =   0b00001111; //cursor on and blink
-const displayOn =         0b00001100; //cursor off and no blink
-const displayOff =        0b00001000;
-const fourBitMode  =      0b00101100; //function set NF
-// char setDDRAM  =         0b10000000; // | this with whatever addy then driveChar
+const char clearDisplay =      0b00000001;
+const char returnHome =        0b00000010;
+const char entryMode =         0b00000110;
+const char displayCursorOn =   0b00001111; //cursor on and blink
+const char displayOn =         0b00001100; //cursor off and no blink
+const char displayOff =        0b00001000;
+const char fourBitMode  =      0b00101100; //function set NF
+const char setDDRAM  =         0b10000000; // | this with whatever addy then driveChar
 
 //-----------------------------------------------------------------------------
 
 //----- Function Declarations -------------------------------------------------
-void latch(); 
-void LCDTx(); 
+// void latch(); 
+// void LCD_init();
+// void LCD_command(const); 
+// void LCD_data(char);  
 
 //-----------------------------------------------------------------------------
 
 int main(void) {
 
-    int i;
-
     // Stop watchdog timer
     WDTCTL = WDTPW | WDTHOLD;   // stop watchdog timer
 
     LCD_init(); // Initialize LCD
-
-    LCD_setCursor(0, 0); // Set cursor to first row, first column
-    LCD_print("Hello, LCD!"); // Print message
 
     while (1){}
 
@@ -125,8 +119,10 @@ void LCD_init() {
     P1OUT &= ~(LCD_D4 | LCD_D5 | LCD_D6 | LCD_D7); // Initialize control pins to low
 
     delay(30);          // Wait >15ms after VDD rises to 4.5V
-    LCD_command(0b00110011);
-    LCD_command(0b00110010);
+    // LCD_command(0b00110011);
+    // LCD_command(0b00110010);
+
+    LCD_command(0x00 | setDDRAM);
 
     LCD_command(fourBitMode); 
     LCD_command(displayOff); 
@@ -135,7 +131,7 @@ void LCD_init() {
     LCD_command(displayOn); 
 
     LCD_data('H');
-
+    LCD_command(0x40 | setDDRAM);
 }
 
 //-LCD Latch: -----------------------------------------------------------------
@@ -146,7 +142,7 @@ void latch(){
     delay(50);
 }//--END LCD latch ------------------------------------------------------------
 
-void LCD_command(const command) {
+void LCD_command(const char command) {
     P2OUT &= ~LCD_RS; // Set RS low for command
     P1OUT = (command & 0xF0);
     latch();
@@ -162,6 +158,15 @@ void LCD_data(char data) {
     latch(); 
 }
 
+void enter_low_power_mode() {
+    // Configure MSP430 to enter low power mode
+    __bis_SR_register(LPM4_bits + GIE); // Enter LPM4 with interrupts enabled
+}
+
+void exit_low_power_mode() {
+    // Exit low power mode
+    __bic_SR_register_on_exit(LPM4_bits); // Exit LPM4
+}
 
 //-Delay: --------------------------------------------------------------------
 void delay(unsigned int ms) {
@@ -169,7 +174,7 @@ void delay(unsigned int ms) {
     for (i = 0; i < ms; i++){
         __delay_cycles(1000); // Assuming 1MHz clock
     }
-}//--END LCD Transmit ---------------------------------------------------------
+}//--END Delay --------------------------------------------------------------
 
 
 // //----- Interrupt Service Routines --------------------------------------------
@@ -196,5 +201,18 @@ void delay(unsigned int ms) {
 //         default:   break;
 //     }
 // }//--END eUSCI_B0 ISR----------------------------------------------------------
-
+// Interrupt service routine for I2C
+#pragma vector = EUSCI_B0_VECTOR 
+__interrupt void EUSCI_B0_I2C_ISR(void) {
+    switch (__even_in_range(UCB0IV, USCI_I2C_UCBIT9IFG)) {
+        // Handle I2C interrupt events
+        case USCI_I2C_UCRXIFG0:
+            // Data received, update LCD
+            LCD_data(UCB0RXBUF);
+            exit_low_power_mode(); // Exit low power mode upon receiving data
+            break;
+        default:
+            break;
+    }
+}
 //-----------------------------------------------------------------------------
