@@ -176,7 +176,7 @@ void PatternBUpdate() {
 //-PatternC: Scrolling Pattern ---------------------------------------------------------------
 void PatternCUpdate(){
     // Set timer for 2s
-    TB0CTL |= TBCLR + TBSSEL__ACLK + MC__UP + ID__1;
+    TB0CTL |= TBCLR + TBSSEL__ACLK + MC__UP + ID__2;
     TB0CCR0 = 32768;
     TB0R = 0;
     TB0CCTL0 |= CCIE;
@@ -206,7 +206,6 @@ void PatternDUpdate() {
     TB0CCR0 = 36864;
     TB0CCR1 = 32768;
     TB0R = 0;
-    TB1R = 0;
     TB0CCTL0 |= CCIE;
     TB0CCTL0 &= ~CCIFG;
     TB0CCTL1 |= CCIE;
@@ -225,7 +224,7 @@ void PatternDUpdate() {
 
 //-ISR Timer B---------------------------------------------------------------------------
 #pragma vector=TIMER0_B0_VECTOR
-__interrupt void Timer_B_ISR(void){
+__interrupt void Timer0_B_ISR(void){
     TimerFlag = true;
     // Clear interrupt flag
     TB0CCTL0 &= ~CCIFG;
@@ -234,15 +233,17 @@ __interrupt void Timer_B_ISR(void){
 
 //-ISR Timer B1 ------------------------------------------------------------------------
 #pragma vector=TIMER0_B1_VECTOR
-__interrupt void Timer_B1_ISR(void){
+__interrupt void Timer0_B1_ISR(void){
     LED_Out = 0x000; // turn off LEDs then disable interrupt and clear flag
     TB0CCTL1 &= ~CCIE;
     TB0CCTL1 &= ~CCIFG;
 }//-- End Timer_B_ISR -----------------------------------------------------------------
 
 #pragma vector=TIMER1_B0_VECTOR
-__interrupt void Timer_B_ISR(void){
-    Timer2Flag = true;
+__interrupt void Timer1_B_ISR(void){
+    state++;
+    if (state == 8)
+        state = 4;
     // Clear interrupt flag
     TB1CCTL0 &= ~CCIFG;
 }//-- End Timer_B_ISR ------------------------------------------------------------------
@@ -294,8 +295,8 @@ __interrupt void EUSCI_B0_I2C_ISR(void) {
             PatternDCounter = 0;
             break;
         case '#':
-            TB1CTL |= TBCLR + TBSSEL__ACLK + MC__UP + ID__1;
-            TB1CCR0 = 16384;
+            TB1CTL |= TBCLR + TBSSEL__ACLK + MC__UP + ID__4;
+            TB1CCR0 = 32000;
             TB1CCTL0 |= CCIE;
             TB1CCTL0 &= ~CCIFG;
             break;

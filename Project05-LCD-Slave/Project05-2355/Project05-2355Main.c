@@ -1,67 +1,20 @@
 /*----------------------------------------------------------------------------------------------------------------------
     EELE465
-	Written by: Lance Gonzalez, Grant Kirkland
-    Working: 
-	Project 04 - Feb 15 2024
+    Written by: Lance Gonzalez, Grant Kirkland
+    Working:
+    Project 04 - Feb 15 2024
 
-	Summary:
+    Summary:
 
-	Version Summary:
-        v01: Press button in column to toggle 0-3 binary on leds
-        v02: Working LED Output, defined keypad macros, working column readout
-        v03: Working keypad password. Working Pattern B. 
-        v04: Added lock button. Working Pattern D. Working Keypad reset
-
+    Version Summary:
+        v01: Added previous project code for keypad and I2C
     MSP430FR2355:
-         4 - SBWTCK - SBWTCK
-         5 - SBWTDIO - SBWTDIO
-         6 - DVCC - 3v3
-         7 - DVSS - GND
-        12 - P4.7 - SCL
-        13 - P4.6 - SDA
-        25 - P4.1 - P7 Row4
-        26 - P4.0 - P6 Row3
-        27 - P2.3 - P5 Row2
-        28 - P2.2 - P4 Row1
-        29 - P2.1 - P3 Col4
-        30 - P2.0 - P2 Col3
-        31 - P1.7 - P1 Col2
-        32 - P1.6 - P0 Col1
 
-    Ports Map: 
-        P3.1, 3.5, 1.1, 5.4, 1.4, 5.3, 5.1, 5.0 - Keyboard P1-8
-        P3.0, 2.5, 4.4, 4.7, 4.6, 4.0, 2.2, 2.0 - LEDs 0-7
 
-	Important Variables/Registers:
-	    Button 0x76543210
-            0-3 Col
-            4-7 Row
-        LED_Out
-            1:1 LED
-
-    Keypad: (Pins L->R)
-            P0   P1   P2   P3
-        P4 |1|  |2|  |3|  |A| P3.7
-        P5 |4|  |5|  |6|  |B| P4.0
-        P6 |7|  |8|  |9|  |C| P2.2
-        P7 |*|  |0|  |#|  |D| P2.0
-          P3.0 P2.5 P4.4 P2.4
-    
-    MSP Errors:
-        P1.3 Always High
-        Row P3.2-2.1 mostly not working?
-        P4.5 Inconsistent Input?
-	Todo:
-		
 -----------------------------------------------------------------------------------------------------------------------*/
-
-
+#include <msp430.h> 
 #include <stdint.h>
-#include "msp430fr2355.h"
 #include "stdbool.h"
-#include "sys/_stdint.h"
-#include <msp430.h>
-#include <driverlib.h>
 #include "driverlib/gpio.c"
 
 #define LED_Address 0x013
@@ -94,7 +47,6 @@
 #define KEY_C 0x048 // 72
 #define KEY_D 0x088 // 136
 
-
 //Function Declarations ------------------------------------------------------
 void ColInput();
 void CheckCol();
@@ -108,36 +60,63 @@ void SwitchDebounce();
 
 //Vairable Declarations-----------------------------------------------------
 uint8_t i;
-uint8_t State = 0; // 0 - wait for key, 1-3 - correct button pressed for password,
-uint8_t Button, LastButton = 0; // tracker of last button pressed
-uint8_t const Passcode[] = {'1', '5', '3'};
+uint8_t samples = 3;
+uint8_t currentCount = 0;
 bool CheckFlag = false;
 bool TimerFlag = false;
 bool QuestFlag = false;
-int test; // arbitrary test register
-//-----------------------------------------------------------------------
+uint8_t Button, LastButton = 0; // tracker of last button pressed
+//--------------------------------------------------------------------------
+
 
 int main(void) {
-    // Stop watchdog timer
-    WDTCTL = WDTPW | WDTHOLD;
+	WDTCTL = WDTPW | WDTHOLD;	// stop watchdog timer
 
-    // Initialize LED and keyboard
+	// Initialize keyboard
     RowInput();
+    // Initialize I2C
+    I2CInit();
 
-    // Clear interrupt flag bits
-    GPIO_clearInterrupt(KEYPAD_ROW1(0), KEYPAD_ROW1(1));
-    GPIO_clearInterrupt(KEYPAD_ROW2(0), KEYPAD_ROW2(1));
-    GPIO_clearInterrupt(KEYPAD_ROW3(0), KEYPAD_ROW3(1));
-    GPIO_clearInterrupt(KEYPAD_ROW4(0), KEYPAD_ROW4(1));
-    // Rising edge sensitivity
-    GPIO_selectInterruptEdge(KEYPAD_ROW1(0), KEYPAD_ROW1(1), GPIO_LOW_TO_HIGH_TRANSITION);
-    GPIO_selectInterruptEdge(KEYPAD_ROW2(0), KEYPAD_ROW2(1), GPIO_LOW_TO_HIGH_TRANSITION);
-    GPIO_selectInterruptEdge(KEYPAD_ROW3(0), KEYPAD_ROW3(1), GPIO_LOW_TO_HIGH_TRANSITION);
-    GPIO_selectInterruptEdge(KEYPAD_ROW4(0), KEYPAD_ROW4(1), GPIO_LOW_TO_HIGH_TRANSITION);
+    P1SEL0 |= BIT1;
+    P1SEL1 |= BIT1;
+    ADCCTL0 |= ADCSHT_2 | ADCON;    // ADC on, 16 clock cycles
+    ADCCTL1 |= ADCSHP_1;            // Sample and hold
+    ADCCTL2 |= ADCRES_2;            // 12 bit resolution
+    ADCIE |= ADCIE0_1;              // ADC Interrupt enabled
+    ADCMCTL0 |= ADCINCH_1 | ADCSREF_1;  // A1 ADC input select, voltage reference internal try voltage 2 and 3 also
 
-    GPIO_setAsOutputPin(1, 0x04);
-    P1OUT |= BIT3;
+    // Disable the GPIO power-on default high-impedance mode
+    // to activate previously configured port settings
+    PM5CTL0 &= ~LOCKLPM5;
 
+    PMMCTL0_H = PMMPW_H;
+    PMMCTL2 |= REFVSEL_2 | INTREFEN_1;
+
+    __delay_cycles(400);   // Delay for reference voltage to settle
+
+    // Interrupt enable
+    GPIO_enableInterrupt(KEYPAD_ROW1(0), KEYPAD_ROW1(1));
+    GPIO_enableInterrupt(KEYPAD_ROW2(0), KEYPAD_ROW2(1));
+    GPIO_enableInterrupt(KEYPAD_ROW3(0), KEYPAD_ROW3(1));
+    GPIO_enableInterrupt(KEYPAD_ROW4(0), KEYPAD_ROW4(1));
+
+    __enable_interrupt();
+    P1DIR |= BIT0;                                            // Set P1.0/LED to output direction
+    P1OUT &= ~BIT0;                                           // P1.0 LED off
+
+    while(1)
+    {
+       ADCCTL0 |= ADCENC | ADCSC;                            // Sampling and conversion start
+       __bis_SR_register(LPM0_bits | GIE);                   // LPM0, ADC_ISR will force exit
+       if (ADC_Result < 0x155)                               // 0.5v = 1.5v* 0x155/0x3ff
+           P1OUT &= ~BIT0;                                   // Clear P1.0 LED off
+       else
+           P1OUT |= BIT0;                                    // Set P1.0 LED on
+       __delay_cycles(5000);
+    }
+}
+
+void I2CInit() {
     UCB1CTLW0 |= UCSWRST; // Put UCB1CTLW0 into software reset
     UCB1CTLW0 |= UCSSEL_3; // Select mode 3
     UCB1BRW = 10; // Something useful
@@ -147,118 +126,20 @@ int main(void) {
     UCB1CTLW0 |= UCTR; // Transmit mode
 
     UCB1CTLW1 |= UCASTP_2; // Autostop enabled
-    // P1.2 SDA
-//    P1SEL1 &= ~(BIT2+BIT3);
-//    P1SEL1 |= (BIT2+BIT3);
-//    P1SEL0 |= (BIT2+BIT3);
-    //P1SEL0 &= ~(BIT2+BIT3);
-    //----- P4.6 and P4.7 for I2C ---
+
+    // Pin 4.7
     P4SEL1 &= ~BIT7;
     P4SEL0 |= BIT7;
 
     P4SEL1 &= ~BIT6;
     P4SEL0 |= BIT6;
-
-    // Disable the GPIO power-on default high-impedance mode
-    // to activate previously configured port settings
-    PM5CTL0 &= ~LOCKLPM5;
     UCB1CTLW0 &= ~UCSWRST; // Take out of Software Reset
 
     UCB1IE |= UCTXIE0; // Enable TX interrupt
     UCB1IE |= UCRXIE0; // Enable RX interrupt
 
-    // Interrupt enable
-    GPIO_enableInterrupt(KEYPAD_ROW1(0), KEYPAD_ROW1(1));
-    GPIO_enableInterrupt(KEYPAD_ROW2(0), KEYPAD_ROW2(1));
-    GPIO_enableInterrupt(KEYPAD_ROW3(0), KEYPAD_ROW3(1));
-    GPIO_enableInterrupt(KEYPAD_ROW4(0), KEYPAD_ROW4(1));
-
-    __enable_interrupt();
-
-    while(1) {
-        P1OUT |= BIT3;
-        if (CheckFlag) {
-            CheckButton();
-            State++;
-            P1OUT &= ~BIT3;
-        }
-        switch(State) {
-            case 1: // respond to keypress
-                TB0CTL |= TBSSEL__ACLK + MC__UP + ID__2;
-                TB0CCR0 = 32768;
-                TB0R = 0;
-                TB0CCTL0 |= CCIE;
-                TB0CCTL0 &= ~CCIFG;
-                if (LastButton == Passcode[0]) {
-                    State++;
-                }
-                else {
-                    State=0;
-                }
-            break;
-            case 3: // first key entered
-                if (LastButton == Passcode[1]) {
-                    State++;
-                }
-                else {
-                    State=0;
-                }
-            break;
-            case 5: // second key entered. If correct progress, otherwise reset
-                if (LastButton == Passcode[2]) {
-                    State++;
-                }
-                else {
-                    State=0;
-                }
-            break;
-            case 7: // password entered
-                TransmitButton();
-
-                // Go back to waiting for key press
-                State--;
-            break;
-
-        }
-    }
 }
 
-void TransmitButton() {
-
-    switch(LastButton) {
-        case '*':
-            if (!TimerFlag) {
-                TimerFlag = true;
-                TB0CTL |= TBCLR + TBSSEL__ACLK + MC__UP + ID__1;
-                TB0CCR1 = 32768;
-                TB1R = 0;
-                TB0CCTL1 |= CCIE;
-                TB0CCTL1 &= ~CCIFG;
-            } else {
-                QuestFlag = true;
-                TimerFlag = false;
-            }
-        case 'A':
-        case 'B':
-        case 'C':
-        case 'D':
-        case '#':
-            UCB1TBCNT = 1;
-            UCB1I2CSA = LED_Address; // Set the slave address in the module
-            //...equal to the slave address
-            UCB1CTLW0 |= UCTR; // Put into transmit mode
-            UCB1CTLW0 |= UCTXSTT; // Generate the start condition
-            for (i = 40; i > 0; i--) {/* Delay */}
-        default:
-            UCB1TBCNT = 1;
-            UCB1I2CSA = LCD_Address; // Set the slave address in the module
-            //...equal to the slave address
-            UCB1CTLW0 |= UCTR; // Put into transmit mode
-            UCB1CTLW0 |= UCTXSTT; // Generate the start condition
-            break;
-    }
-
-}
 
 //-ColumnInput: Sets row pins as OUTPUT---------------------------------------------------------------------
 void ColumnInput(){
@@ -395,22 +276,35 @@ __interrupt void ISR_Button_Pressed(void) {
     GPIO_clearInterrupt(KEYPAD_ROW4(0), KEYPAD_ROW4(1));
 }//-- End ISR_P5_Button_Pressed ----------------------------------------------------------
 
-//-ISR Timer B---------------------------------------------------------------------------
-#pragma vector=TIMER0_B0_VECTOR
-__interrupt void Timer_B_ISR(void){
-    // If password hasn't been fully entered, and timer triggered set pattern to 5 and reset to state 0
-    if (State < 5) {
-        State = 0;
-    }
-    // Clear interrupt flag
-    TB0CCTL0 &= ~CCIFG;
-}//-- End Timer_B_ISR ------------------------------------------------------------------
-
-//-ISR Timer B1 ------------------------------------------------------------------------
-#pragma vector=TIMER0_B1_VECTOR
-__interrupt void Timer_B1_ISR(void){
-    TimerFlag = false;
-    TB0CCTL1 &= ~CCIE;
-    TB0CCTL1 &= ~CCIFG;
-}//-- End Timer_B_ISR -----------------------------------------------------------------
-
+// ADC interrupt service routine
+#if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
+#pragma vector=ADC_VECTOR
+__interrupt void ADC_ISR(void)
+#elif defined(__GNUC__)
+void __attribute__ ((interrupt(ADC_VECTOR))) ADC_ISR (void)
+#else
+#error Compiler not supported!
+#endif
+{
+   switch(__even_in_range(ADCIV,ADCIV_ADCIFG))
+   {
+       case ADCIV_NONE:
+           break;
+       case ADCIV_ADCOVIFG:
+           break;
+       case ADCIV_ADCTOVIFG:
+           break;
+       case ADCIV_ADCHIIFG:
+           break;
+       case ADCIV_ADCLOIFG:
+           break;
+       case ADCIV_ADCINIFG:
+           break;
+       case ADCIV_ADCIFG:
+           ADC_Result = ADCMEM0;
+           __bic_SR_register_on_exit(LPM0_bits);              // Clear CPUOFF bit from LPM0
+           break;
+       default:
+           break;
+   }
+}
