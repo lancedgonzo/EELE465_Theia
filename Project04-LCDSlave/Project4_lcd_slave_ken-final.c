@@ -1,5 +1,3 @@
-#include <msp430.h> 
-
 /**
  *      Created on: Mar 5, 2024
  *      Credit: Drew Currie

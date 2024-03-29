@@ -69,7 +69,7 @@ void LCD_init();
 void LCD_command(char); 
 void LCD_data(char);  
 void delay(); 
-I2C_slaveRx(); 
+void I2C_slaveRx(); 
 
 //-----------------------------------------------------------------------------
 
@@ -78,9 +78,8 @@ int main(void) {
     // Stop watchdog timer
     WDTCTL = WDTPW | WDTHOLD;   // stop watchdog timer
 
-    I2C_slaveRx(); 
+    // I2C_slaveRx(); //Initialize I2C
     LCD_init(); // Initialize LCD
-    PM5CTL0 &= ~LOCKLPM5;
 
     while (1){}
 
@@ -91,26 +90,26 @@ int main(void) {
 //----- Subroutines & Function Definitions ------------------------------------
 //- I2C_slaveRx: Initalizes the controller as a slave with address 0x00
 void I2C_slaveRx(void){
-    UCB0CTLW0 |= UCSWRST;        //eUSCI-B0 software reset
-    UCB0CTLW0 |= UCMODE_3;      //I2C slave mode 
-    UCB0CTLW0 &= ~UCMST;           //again?
-    UCB0CTLW0 &= ~UCTR;         //clears transmit mode select bit
-    UCB0I2COA0 = 0X046;        //Slave address
-    UCB0I2COA0 |= UCOAEN;       //Enables I2C own address
-    UCB0CTLW1 &= ~UCASTP1;      //clear auto stop bit
-    UCB0CTLW1 &= ~UCASTP0;
+    // UCB0CTLW0 |= UCSWRST;        //eUSCI-B0 software reset
+    // UCB0CTLW0 |= UCMODE_3;      //I2C slave mode 
+    // UCB0CTLW0 &= ~UCMST;           //again?
+    // UCB0CTLW0 &= ~UCTR;         //clears transmit mode select bit
+    // UCB0I2COA0 = 0X046;        //Slave address
+    // UCB0I2COA0 |= UCOAEN;       //Enables I2C own address
+    // UCB0CTLW1 &= ~UCASTP1;      //clear auto stop bit
+    // UCB0CTLW1 &= ~UCASTP0;
 
-    //Port Setup
-    P1SEL1 &= ~BIT3; 
-    P1SEL1 &= ~BIT2; 
+    // //Port Setup
+    // P1SEL1 &= ~BIT3; 
+    // P1SEL1 &= ~BIT2; 
 
-    P1SEL0 |= BIT3; 
-    P1SEL0 |= BIT2; 
+    // P1SEL0 |= BIT3; 
+    // P1SEL0 |= BIT2; 
 
-    UCB0CTLW1 |= UCASTP_2;      //enable stop bit mode 2
-    UCB0CTL1 &= ~UCSWRST;       //eUSCI-B0 in operational state 
+    // UCB0CTLW0 |= UCASTP_2;      //enable stop bit mode 2
+    // UCB0CTLW0 &= ~UCSWRST;       //eUSCI-B0 in operational state 
 
-    UCB0IE |= UCRXIE0;  //Enable Tx and Rx interrupt 
+    // UCB0IE |= UCRXIE0;  //Enable Tx and Rx interrupt 
     __enable_interrupt(); 
 }//--END I2C_slaveRx-----------------------------------------------------------
 
@@ -121,22 +120,22 @@ void LCD_init(){
 
     P2OUT &= ~(LCD_RS | LCD_EN | LCD_RW);
     P1OUT &= ~(LCD_D4 | LCD_D5 | LCD_D6 | LCD_D7); // Initialize control pins to low
+    PM5CTL0 &= ~LOCKLPM5;
 
-    delay(30);          // Wait >15ms after VDD rises to 4.5V
-    // LCD_command(0b00110011);
-    // LCD_command(0b00110010);
+    delay(30);          // Wait 
 
-    // LCD_command(0x00 | setDDRAM);
+    LCD_command(0x00 | setDDRAM);
 
     LCD_command(fourBitMode); 
     LCD_command(displayOff); 
     LCD_command(clearDisplay);
     LCD_command(entryMode);
     LCD_command(displayOn); 
+    LCD_command(0x00 | setDDRAM);
 
     LCD_data('H');
-    LCD_data('Y')
-    // LCD_command(0x40 | setDDRAM);
+    // LCD_data('Y');
+    LCD_command(0x40 | setDDRAM);
 }
 
 //-LCD Latch: -----------------------------------------------------------------
@@ -156,6 +155,8 @@ void LCD_command(char command){
 }
 
 void LCD_data(char data){
+    LCD_command(entryMode);
+
     P2OUT |= LCD_RS;  // Set RS high for data
     P1OUT = (data & 0xF0);
     latch(); 
@@ -173,10 +174,10 @@ void delay(unsigned int ms){
 }//--END Delay --------------------------------------------------------------
 
 
-// // Interrupt service routine for I2C
+// Interrupt service routine for I2C
 // #pragma vector = EUSCI_B0_VECTOR 
 // __interrupt void EUSCI_B0_I2C_ISR(void) {
-//         LCD_data(UCB0RXBUF);
+//     UCB0IFG &= ~UCRXIFG; // Clear I2C Rx interrupt flag
 // }
 //-----------------------------------------------------------------------------
 
