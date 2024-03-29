@@ -1,56 +1,29 @@
-/* --COPYRIGHT--,BSD
- * Copyright (c) 2018, Texas Instruments Incorporated
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * *  Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- *
- * *  Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- *
- * *  Neither the name of Texas Instruments Incorporated nor the names of
- *    its contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
- * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
- * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
- * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
- * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * --/COPYRIGHT--*/
-//******************************************************************************
-//
-//  lightsensor.c
-//
-//  Uses SAC2 in generic Op-Amp mode along with onboard photodiode, capacitor, and 
-//  resistor to implement a light sensor circuit. The resulting voltage is buffered
-//  through SAC0, measured by the internal ADC, and used to control Timer PWMs
-//  dutycycle to modulate the brightness of LED1 and LED2.
-//
-//  E. Chen
-//  Texas Instruments Inc.
-//  May 2018
-//******************************************************************************
-
 #include <keypad.h>
 #include "driverlib.h"
+#include <stdint.h>
 
-
-uint8_t Button, LastButton = 0; // tracker of last button pressed
+uint8_t Button; // tracker of last button pressed
 bool CheckFlag = false;
+uint8_t i;
 
+void Init_Keypad() {
+    RowInput();
+    // Interrupt enable
+    GPIO_enableInterrupt(KEYPAD_ROW1(0), KEYPAD_ROW1(1));
+    GPIO_enableInterrupt(KEYPAD_ROW2(0), KEYPAD_ROW2(1));
+    GPIO_enableInterrupt(KEYPAD_ROW3(0), KEYPAD_ROW3(1));
+    GPIO_enableInterrupt(KEYPAD_ROW4(0), KEYPAD_ROW4(1));
 
+}
+
+//-CheckButton: Call functions to check which button was pressed, save it in last button and debounce.
+void CheckButton() {
+    CheckCol();
+    CheckRow();
+    ButtonResponse();
+    SwitchDebounce();
+    CheckFlag = false;
+}//--END CheckButton-----------------------------------------------------------------------------------
 
 //-ColumnInput: Sets row pins as OUTPUT---------------------------------------------------------------------
 void ColumnInput(){
@@ -126,15 +99,6 @@ void CheckRow() {
     Button = ((P4IN & (KEYPAD_ROW4(1))) == (KEYPAD_ROW4(1))) ? (Button | BIT7) : (Button & ~BIT7);
 }//--END CheckRow-----------------------------------------------------------------------------------
 
-//-CheckButton: Call functions to check which button was pressed, save it in last button and debounce.
-void CheckButton() {
-    CheckCol();
-    CheckRow();
-    ButtonResponse();
-    SwitchDebounce();
-    CheckFlag = false;
-}//--END CheckButton-----------------------------------------------------------------------------------
-
 //-ButtonResponse: Updating last button to current button-----------------------------------------------
 void ButtonResponse() {
     // Update last button with identified button pressed
@@ -159,13 +123,11 @@ void ButtonResponse() {
 }//--End ButtonResponse
 
 
-int led1_dutycycle = 0;
-int led2_dutycycle = 0;
-int calibratedADC = 500;
-int period = 100;
-int counter = 0;
-int deadzone = 5;
-int runningAvg = 500;
+//-SwitchDebounce(): -------------------------------------------------------------------------
+void SwitchDebounce(){
+    for(i=0; i<10; i++){}
+}//--END SwitchDebounce---------------------------------------------------------------
+
 
 //-ISR Port 4 ----------------------------------------------------------------------------
 #pragma vector = PORT1_VECTOR
