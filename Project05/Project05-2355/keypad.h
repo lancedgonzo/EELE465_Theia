@@ -41,7 +41,6 @@ void RowInput(void);
 void CheckRow(void);
 void CheckButton(void);
 void ButtonResponse(void);
-void TransmitButton(void);
 void SwitchDebounce(void);
 //--------------------------------------------------------------------------
 

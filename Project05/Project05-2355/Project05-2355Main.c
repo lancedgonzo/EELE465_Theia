@@ -67,6 +67,7 @@ void ADCToTemp();
 void TempConversion();
 void ADCSave();
 void ADCAverage();
+void ADCDataReset();
 
 //Vairable Declarations-----------------------------------------------------
 uint8_t State = 0; // 0 - wait for key, 1-3 - correct button pressed for password,
@@ -88,7 +89,7 @@ uint16_t ADCResult = 0;
 uint16_t Data[10];
 uint8_t DataPointer = 0;
 uint8_t WindowValue = 3;
-uint16_t AveragedTemp = 0;
+float AveragedTemp = 0;
 
 
 //-----------------------------------------------------------------------
@@ -119,6 +120,10 @@ int main(void) {
     __enable_interrupt();
 
     while(1) {
+        if (CheckFlag) {
+            CheckButton();
+            TransmitButton();
+        }
         switch (State) {
             case 0:
                 ADCCTL0 |= ADCENC | ADCSC;                           // Sampling and conversion start
@@ -130,7 +135,6 @@ int main(void) {
                 ADCSave();
                 ADCAverage();
                 LCDFormat();
-                TransmitButton();
                 State++;
                 break;
             case 99: // Test state for continuous transmit
@@ -195,15 +199,18 @@ void ADCSave() {
 
 void ADCAverage() {
     AveragedTemp = 0;
-    for (j = WindowValue - 1; j = 0; j--) {
+    for (j = 0; j < WindowValue; j++) {
         if (Data[j] == 0) {
             AveragedTemp = 0;
             return;
         }
-        AveragedTemp += Data[j];
+        AveragedTemp += (float) Data[j];
     }
+    AveragedTemp = AveragedTemp / (float) WindowValue;
 }
-void ADCWindowChange() {
+void ADCDataReset() {
+    DataPointer = 0;
+    ADCResult = 0;
     Data[0]=0;
     Data[1]=0;
     Data[2]=0;
@@ -217,13 +224,48 @@ void ADCWindowChange() {
 }
 
 void TransmitButton() {
-    LCDPointer = 0;
-    UCB1TBCNT = 32;
-    UCB1I2CSA = LED_Address; // Set the slave address in the module equal to the slave address
-    UCB1CTLW0 |= UCTR; // Put into transmit mode
-    UCB1CTLW0 |= UCTXSTT; // Generate the start condition
+//    UCB1TBCNT = 1;
+//    UCB1I2CSA = LCD_Address; // Set the slave address in the module
+//    //...equal to the slave address
+//    UCB1CTLW0 |= UCTR; // Put into transmit mode
+//    UCB1CTLW0 |= UCTXSTT; // Generate the start condition
+
+    switch(LastButton) {
+        case '0':
+        case '*':
+        case 'A':
+        case 'B':
+        case 'C':
+        case 'D':
+        case '#':
+//            UCB1TBCNT = 1;
+//            UCB1I2CSA = LED_Address; // Set the slave address in the module
+//            //...equal to the slave address
+//            UCB1CTLW0 |= UCTR; // Put into transmit mode
+//            UCB1CTLW0 |= UCTXSTT; // Generate the start condition
+//            for (i = 40; i > 0; i--) {/* Delay */}
+            break;
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+        case '6':
+        case '7':
+        case '8':
+        case '9':
+            WindowValue = LastButton - 48;
+            ADCDataReset();
+            break;
+        default:
+            break;
+    }
+
 }
 
+void TransmitLCD() {
+
+}
 
 void LCDFormat() {
 
