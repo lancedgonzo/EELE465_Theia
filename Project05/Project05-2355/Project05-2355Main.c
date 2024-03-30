@@ -60,13 +60,19 @@
 #define LED_Address 0x013
 #define LCD_Address 0x046
 
+void Init_ADC();
 void Init_I2C();
 void LCDFormat();
 void ADCToTemp();
 void TempConversion();
+void ADCSave();
+void ADCAverage();
 
 //Vairable Declarations-----------------------------------------------------
 uint8_t State = 0; // 0 - wait for key, 1-3 - correct button pressed for password,
+
+bool TimerFlag = false;
+ uint8_t j = 0;
 
 // Keypad
 char LastButton = 0;
@@ -78,10 +84,11 @@ char LCDMessage[32] = "12345678901234567890123456789012";
 uint8_t LCDPointer = 0;
 
 // Temp
+uint16_t ADCResult = 0;
 uint16_t Data[10];
-uint8_t DataPointer;
+uint8_t DataPointer = 0;
 uint8_t WindowValue = 3;
-uint16_t AveragedTemp;
+uint16_t AveragedTemp = 0;
 
 
 //-----------------------------------------------------------------------
@@ -93,39 +100,46 @@ int main(void) {
     // Initialization
     Init_Keypad();
     Init_I2C();
+    Init_ADC();
 
- //   GPIO_setAsOutputPin(1, 0x04);
- //   P1OUT |= BIT3;
+    GPIO_setAsOutputPin(1, 0x04);
+    P1OUT |= BIT3;
 
     // Disable the GPIO power-on default high-impedance mode
     // to activate previously configured port settings
     PM5CTL0 &= ~LOCKLPM5;
 
     TimerFlag = true;
-    TB0CTL |= TBCLR + TBSSEL__ACLK + MC__UP + ID__1;
-    TB0CCR1 = 32768;
-    TB1R = 0;
-    TB0CCTL1 |= CCIE;
-    TB0CCTL1 &= ~CCIFG;
+    TB0CTL |= TBSSEL__ACLK + MC__UP + ID__2;
+    TB0CCR0 = 5460;
+    TB0R = 0;
+    TB0CCTL0 |= CCIE;
+    TB0CCTL0 &= ~CCIFG;
 
     __enable_interrupt();
 
     while(1) {
         switch (State) {
             case 0:
-                if (TimerFlag) {
-                    TransmitButton();
-                    TimerFlag = false;
-                }
-
+                ADCCTL0 |= ADCENC | ADCSC;                           // Sampling and conversion start
+                __bis_SR_register(LPM0_bits | GIE);                  // LPM0, ADC_ISR will force exit
+                __no_operation();                                    // For debug only
+                State++;
                 break;
-
+            case 2:
+                ADCSave();
+                ADCAverage();
+                LCDFormat();
+                TransmitButton();
+                State++;
+                break;
             case 99: // Test state for continuous transmit
                 LCDFormat();
                 TransmitButton();
                 __delay_cycles(5000);
                 break;
-
+            default:
+                break;
         }
 
     }
@@ -154,10 +168,53 @@ void Init_I2C() {
 
     P4SEL1 &= ~BIT6;
     P4SEL0 |= BIT6;
+}
+
+void Init_ADC() {
+    // Configure ADC A1 pin
+    P1SEL0 |= BIT1;
+    P1SEL1 |= BIT1;
+    // Configure ADC12
+    ADCCTL0 |= ADCSHT_2 | ADCON;                             // ADCON, S&H=16 ADC clks
+    ADCCTL1 |= ADCSHP;                                       // ADCCLK = MODOSC; sampling timer
+    ADCCTL2 &= ~ADCRES;                                      // clear ADCRES in ADCCTL
+    ADCCTL2 |= ADCRES_2;                                     // 12-bit conversion results
+    ADCMCTL0 |= ADCINCH_1;                                   // A1 ADC input select; Vref=AVCC
+    ADCIE |= ADCIE0;                                         // Enable ADC conv complete interrupt
 
 
 }
 
+void ADCSave() {
+    Data[DataPointer] = ADCResult;
+    DataPointer++;
+    if (DataPointer == WindowValue) {
+        DataPointer = 0;
+    }
+}
+
+void ADCAverage() {
+    AveragedTemp = 0;
+    for (j = WindowValue - 1; j = 0; j--) {
+        if (Data[j] == 0) {
+            AveragedTemp = 0;
+            return;
+        }
+        AveragedTemp += Data[j];
+    }
+}
+void ADCWindowChange() {
+    Data[0]=0;
+    Data[1]=0;
+    Data[2]=0;
+    Data[3]=0;
+    Data[4]=0;
+    Data[5]=0;
+    Data[6]=0;
+    Data[7]=0;
+    Data[8]=0;
+    Data[9]=0;
+}
 
 void TransmitButton() {
     LCDPointer = 0;
@@ -194,7 +251,7 @@ __interrupt void EUSCI_B1_I2C_ISR(void) {
 //-ISR Timer B---------------------------------------------------------------------------
 #pragma vector=TIMER0_B0_VECTOR
 __interrupt void Timer_B_ISR(void){
-    TimerFlag = true;
+    State = 0;
 
     // Clear interrupt flag
     TB0CCTL0 &= ~CCIFG;
@@ -206,4 +263,32 @@ __interrupt void Timer_B1_ISR(void){
     TB0CCTL1 &= ~CCIE;
     TB0CCTL1 &= ~CCIFG;
 }//-- End Timer_B_ISR -----------------------------------------------------------------
+
+// ADC interrupt service routine
+#pragma vector=ADC_VECTOR
+__interrupt void ADC_ISR(void)
+{
+    switch(__even_in_range(ADCIV,ADCIV_ADCIFG))
+    {
+        case ADCIV_NONE:
+            break;
+        case ADCIV_ADCOVIFG:
+            break;
+        case ADCIV_ADCTOVIFG:
+            break;
+        case ADCIV_ADCHIIFG:
+            break;
+        case ADCIV_ADCLOIFG:
+            break;
+        case ADCIV_ADCINIFG:
+            break;
+        case ADCIV_ADCIFG:
+            ADCResult = ADCMEM0;
+            __bic_SR_register_on_exit(LPM0_bits);            // Clear CPUOFF bit from LPM0
+            State++;
+            break;
+        default:
+            break;
+    }
+}
 
