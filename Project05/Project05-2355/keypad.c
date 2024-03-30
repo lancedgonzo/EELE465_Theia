@@ -3,7 +3,6 @@
 #include <stdint.h>
 
 uint8_t Button; // tracker of last button pressed
-bool CheckFlag = false;
 uint8_t i;
 
 void Init_Keypad() {
@@ -13,6 +12,11 @@ void Init_Keypad() {
     GPIO_enableInterrupt(KEYPAD_ROW2(0), KEYPAD_ROW2(1));
     GPIO_enableInterrupt(KEYPAD_ROW3(0), KEYPAD_ROW3(1));
     GPIO_enableInterrupt(KEYPAD_ROW4(0), KEYPAD_ROW4(1));
+    // Rising edge sensitivity
+    GPIO_selectInterruptEdge(KEYPAD_ROW1(0), KEYPAD_ROW1(1), GPIO_LOW_TO_HIGH_TRANSITION);
+    GPIO_selectInterruptEdge(KEYPAD_ROW2(0), KEYPAD_ROW2(1), GPIO_LOW_TO_HIGH_TRANSITION);
+    GPIO_selectInterruptEdge(KEYPAD_ROW3(0), KEYPAD_ROW3(1), GPIO_LOW_TO_HIGH_TRANSITION);
+    GPIO_selectInterruptEdge(KEYPAD_ROW4(0), KEYPAD_ROW4(1), GPIO_LOW_TO_HIGH_TRANSITION);
 
 }
 

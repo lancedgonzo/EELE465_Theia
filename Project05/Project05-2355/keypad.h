@@ -1,6 +1,8 @@
 #ifndef KEYPAD_H_
 #define KEYPAD_H_
 
+#include "stdbool.h"
+
 #define KEYPAD_COL1(r) (r == 0) ? 1 : 0x0040 // 1.6
 #define KEYPAD_COL2(r) (r == 0) ? 1 : 0x0080 // 1.7
 #define KEYPAD_COL3(r) (r == 0) ? 2 : 0x0001 // 2.0
@@ -28,6 +30,7 @@
 #define KEY_C 0x048     //  72
 #define KEY_D 0x088     // 136
 
+extern bool CheckFlag;
 extern char LastButton;
 
 //Function Declarations ------------------------------------------------------
