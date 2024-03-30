@@ -66,7 +66,7 @@ void ADCToTemp();
 void TempConversion();
 
 //Vairable Declarations-----------------------------------------------------
-uint8_t State = 99; // 0 - wait for key, 1-3 - correct button pressed for password,
+uint8_t State = 0; // 0 - wait for key, 1-3 - correct button pressed for password,
 
 // Keypad
 char LastButton = 0;
@@ -101,15 +101,29 @@ int main(void) {
     // to activate previously configured port settings
     PM5CTL0 &= ~LOCKLPM5;
 
+    TimerFlag = true;
+    TB0CTL |= TBCLR + TBSSEL__ACLK + MC__UP + ID__1;
+    TB0CCR1 = 32768;
+    TB1R = 0;
+    TB0CCTL1 |= CCIE;
+    TB0CCTL1 &= ~CCIFG;
 
     __enable_interrupt();
 
     while(1) {
-        switch (state) {
+        switch (State) {
+            case 0:
+                if (TimerFlag) {
+                    TransmitButton();
+                    TimerFlag = false;
+                }
+
+                break;
+
             case 99: // Test state for continuous transmit
                 LCDFormat();
                 TransmitButton();
-
+                __delay_cycles(5000);
                 break;
 
         }
@@ -148,10 +162,9 @@ void Init_I2C() {
 void TransmitButton() {
     LCDPointer = 0;
     UCB1TBCNT = 32;
-    UCB1I2CSA = LCD_Address; // Set the slave address in the module equal to the slave address
+    UCB1I2CSA = LED_Address; // Set the slave address in the module equal to the slave address
     UCB1CTLW0 |= UCTR; // Put into transmit mode
     UCB1CTLW0 |= UCTXSTT; // Generate the start condition
-    __delay_cycles(5000);
 }
 
 
@@ -181,10 +194,8 @@ __interrupt void EUSCI_B1_I2C_ISR(void) {
 //-ISR Timer B---------------------------------------------------------------------------
 #pragma vector=TIMER0_B0_VECTOR
 __interrupt void Timer_B_ISR(void){
-    // If password hasn't been fully entered, and timer triggered set pattern to 5 and reset to state 0
-    if (State < 5) {
-        State = 0;
-    }
+    TimerFlag = true;
+
     // Clear interrupt flag
     TB0CCTL0 &= ~CCIFG;
 }//-- End Timer_B_ISR ------------------------------------------------------------------

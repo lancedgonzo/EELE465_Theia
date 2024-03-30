@@ -105,10 +105,11 @@ int main(void) {
     __enable_interrupt();
 
     while(1) {
-        switch (state) {
+        switch (State) {
             case 99: // Test state for continuous transmit
                 LCDFormat();
                 TransmitButton();
+                __delay_cycles(5000);
 
                 break;
 
@@ -151,7 +152,6 @@ void TransmitButton() {
     UCB1I2CSA = LCD_Address; // Set the slave address in the module equal to the slave address
     UCB1CTLW0 |= UCTR; // Put into transmit mode
     UCB1CTLW0 |= UCTXSTT; // Generate the start condition
-    __delay_cycles(5000);
 }
 
 
