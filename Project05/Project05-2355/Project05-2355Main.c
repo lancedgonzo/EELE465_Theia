@@ -59,6 +59,7 @@
 #include "keypad.h"
 #define LED_Address 0x013
 #define LCD_Address 0x046
+#define TempThreshold 1000.0
 
 void Init_ADC();
 void Init_I2C();
@@ -68,11 +69,16 @@ void TempConversion();
 void ADCSave();
 void ADCAverage();
 void ADCDataReset();
+void TransmitButton();
+void TransmitLCD();
 
 //Vairable Declarations-----------------------------------------------------
 uint8_t State = 0; // 0 - wait for key, 1-3 - correct button pressed for password,
 
+uint8_t TransmitMode = 0;
 bool TimerFlag = false;
+bool LEDModeD = false; // If LED Mode is set to D
+bool LevelFlag = false; // If ADC was last under level
  uint8_t j = 0;
 
 // Keypad
@@ -121,8 +127,17 @@ int main(void) {
 
     while(1) {
         if (CheckFlag) {
+            LEDModeD = false;
             CheckButton();
             TransmitButton();
+        }
+        if (LEDModeD && AveragedTemp != 0) {
+
+            if ((!LevelFlag && (AveragedTemp > TempThreshold)) || (LevelFlag && (AveragedTemp <= TempThreshold))) {
+                TransmitMode++;
+                TransmitButton();
+            }
+
         }
         switch (State) {
             case 0:
@@ -135,11 +150,12 @@ int main(void) {
                 ADCSave();
                 ADCAverage();
                 LCDFormat();
+                TransmitLCD();
                 State++;
                 break;
             case 99: // Test state for continuous transmit
                 LCDFormat();
-                TransmitButton();
+                TransmitLCD();
                 __delay_cycles(5000);
                 break;
             default:
@@ -232,18 +248,23 @@ void TransmitButton() {
 
     switch(LastButton) {
         case '0':
+            break;
+        case 'D':
+            LEDModeD = true;
         case '*':
         case 'A':
         case 'B':
         case 'C':
-        case 'D':
+            TransmitMode++;
+            UCB1TBCNT = TransmitMode;
+            UCB1I2CSA = LED_Address;
+            UCB1CTLW0 |= UCTR;
+            UCB1CTLW0 |= UCTXSTT;
+            break;
         case '#':
-//            UCB1TBCNT = 1;
-//            UCB1I2CSA = LED_Address; // Set the slave address in the module
-//            //...equal to the slave address
-//            UCB1CTLW0 |= UCTR; // Put into transmit mode
-//            UCB1CTLW0 |= UCTXSTT; // Generate the start condition
-//            for (i = 40; i > 0; i--) {/* Delay */}
+            ADCDataReset();
+            LCDFormat();
+            TransmitLCD();
             break;
         case '1':
         case '2':
@@ -254,6 +275,7 @@ void TransmitButton() {
         case '7':
         case '8':
         case '9':
+            TransmitMode++;
             WindowValue = LastButton - 48;
             ADCDataReset();
             break;
@@ -264,7 +286,11 @@ void TransmitButton() {
 }
 
 void TransmitLCD() {
-
+    LCDPointer = 0;
+    UCB1TBCNT = 32;
+    UCB1I2CSA = LCD_Address; // Set the slave address in the module equal to the slave address
+    UCB1CTLW0 |= UCTR; // Put into transmit mode
+    UCB1CTLW0 |= UCTXSTT; // Generate the start condition
 }
 
 void LCDFormat() {
@@ -283,10 +309,23 @@ void TempConversion() {
 //-- Interrupt Service Routines -----------------------------------------------------------
 #pragma vector = EUSCI_B1_VECTOR
 __interrupt void EUSCI_B1_I2C_ISR(void) {
-    UCB1TXBUF = LCDMessage[LCDPointer];
-    LCDPointer++;
-    if (LCDPointer == 33) {
-        LCDPointer = 0;
+    switch (TransmitMode) {
+        case 0:
+            UCB1TXBUF = LCDMessage[LCDPointer];
+            LCDPointer++;
+            if (LCDPointer == 33) {
+                LCDPointer = 0;
+            }
+            break;
+        case 1:
+            UCB1TXBUF = LastButton;
+            TransmitMode--;
+        case 2:
+            LevelFlag = AveragedTemp > TempThreshold ? true : false;
+            UCB1TXBUF = LevelFlag;
+            TransmitMode--;
+        default:
+            TransmitMode = 0;
     }
 }
 
