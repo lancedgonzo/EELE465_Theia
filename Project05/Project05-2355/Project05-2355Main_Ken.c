@@ -59,14 +59,27 @@
 #include "keypad.h"
 #define LED_Address 0x013
 #define LCD_Address 0x046
+#define TempThreshold 1000.0
 
+void Init_ADC();
 void Init_I2C();
 void LCDFormat();
 void ADCToTemp();
 void TempConversion();
+void ADCSave();
+void ADCAverage();
+void ADCDataReset();
+void TransmitButton();
+void TransmitLCD();
 
 //Vairable Declarations-----------------------------------------------------
-uint8_t State = 99; // 0 - wait for key, 1-3 - correct button pressed for password,
+uint8_t State = 0; // 0 - wait for key, 1-3 - correct button pressed for password,
+
+uint8_t TransmitMode = 0;
+bool TimerFlag = false;
+bool LEDModeD = false; // If LED Mode is set to D
+bool LevelFlag = false; // If ADC was last under level
+ uint8_t j = 0;
 
 // Keypad
 char LastButton = 0;
@@ -78,10 +91,11 @@ char LCDMessage[32] = "12345678901234567890123456789012";
 uint8_t LCDPointer = 0;
 
 // Temp
+uint16_t ADCResult = 0;
 uint16_t Data[10];
-uint8_t DataPointer;
+uint8_t DataPointer = 0;
 uint8_t WindowValue = 3;
-uint16_t AveragedTemp;
+float AveragedTemp = 0;
 
 
 //-----------------------------------------------------------------------
@@ -93,26 +107,59 @@ int main(void) {
     // Initialization
     Init_Keypad();
     Init_I2C();
+    Init_ADC();
 
- //   GPIO_setAsOutputPin(1, 0x04);
- //   P1OUT |= BIT3;
+    GPIO_setAsOutputPin(1, 0x04);
+    P1OUT |= BIT3;
 
     // Disable the GPIO power-on default high-impedance mode
     // to activate previously configured port settings
     PM5CTL0 &= ~LOCKLPM5;
 
+    TimerFlag = true;
+    TB0CTL |= TBSSEL__ACLK + MC__UP + ID__2;
+    TB0CCR0 = 5460;
+    TB0R = 0;
+    TB0CCTL0 |= CCIE;
+    TB0CCTL0 &= ~CCIFG;
 
     __enable_interrupt();
 
     while(1) {
+        if (CheckFlag) {
+            LEDModeD = false;
+            CheckButton();
+            TransmitButton();
+        }
+        if (LEDModeD && AveragedTemp != 0) {
+
+            if ((!LevelFlag && (AveragedTemp > TempThreshold)) || (LevelFlag && (AveragedTemp <= TempThreshold))) {
+                TransmitMode++;
+                TransmitButton();
+            }
+
+        }
         switch (State) {
+            case 0:
+                ADCCTL0 |= ADCENC | ADCSC;                           // Sampling and conversion start
+                __bis_SR_register(LPM0_bits | GIE);                  // LPM0, ADC_ISR will force exit
+                __no_operation();                                    // For debug only
+                State++;
+                break;
+            case 2:
+                ADCSave();
+                ADCAverage();
+                LCDFormat();
+                TransmitLCD();
+                State++;
+                break;
             case 99: // Test state for continuous transmit
                 LCDFormat();
-                TransmitButton();
+                TransmitLCD();
                 __delay_cycles(5000);
-
                 break;
-
+            default:
+                break;
         }
 
     }
@@ -141,19 +188,110 @@ void Init_I2C() {
 
     P4SEL1 &= ~BIT6;
     P4SEL0 |= BIT6;
+}
+
+void Init_ADC() {
+    // Configure ADC A1 pin
+    P1SEL0 |= BIT1;
+    P1SEL1 |= BIT1;
+    // Configure ADC12
+    ADCCTL0 |= ADCSHT_2 | ADCON;                             // ADCON, S&H=16 ADC clks
+    ADCCTL1 |= ADCSHP;                                       // ADCCLK = MODOSC; sampling timer
+    ADCCTL2 &= ~ADCRES;                                      // clear ADCRES in ADCCTL
+    ADCCTL2 |= ADCRES_2;                                     // 12-bit conversion results
+    ADCMCTL0 |= ADCINCH_1;                                   // A1 ADC input select; Vref=AVCC
+    ADCIE |= ADCIE0;                                         // Enable ADC conv complete interrupt
 
 
 }
 
+void ADCSave() {
+    Data[DataPointer] = ADCResult;
+    DataPointer++;
+    if (DataPointer == WindowValue) {
+        DataPointer = 0;
+    }
+}
+
+void ADCAverage() {
+    AveragedTemp = 0;
+    for (j = 0; j < WindowValue; j++) {
+        if (Data[j] == 0) {
+            AveragedTemp = 0;
+            return;
+        }
+        AveragedTemp += (float) Data[j];
+    }
+    AveragedTemp = AveragedTemp / (float) WindowValue;
+}
+void ADCDataReset() {
+    DataPointer = 0;
+    ADCResult = 0;
+    Data[0]=0;
+    Data[1]=0;
+    Data[2]=0;
+    Data[3]=0;
+    Data[4]=0;
+    Data[5]=0;
+    Data[6]=0;
+    Data[7]=0;
+    Data[8]=0;
+    Data[9]=0;
+}
 
 void TransmitButton() {
+//    UCB1TBCNT = 1;
+//    UCB1I2CSA = LCD_Address; // Set the slave address in the module
+//    //...equal to the slave address
+//    UCB1CTLW0 |= UCTR; // Put into transmit mode
+//    UCB1CTLW0 |= UCTXSTT; // Generate the start condition
+
+    switch(LastButton) {
+        case '0':
+            break;
+        case 'D':
+            LEDModeD = true;
+        case '*':
+        case 'A':
+        case 'B':
+        case 'C':
+            TransmitMode++;
+            UCB1TBCNT = TransmitMode;
+            UCB1I2CSA = LED_Address;
+            UCB1CTLW0 |= UCTR;
+            UCB1CTLW0 |= UCTXSTT;
+            break;
+        case '#':
+            ADCDataReset();
+            LCDFormat();
+            TransmitLCD();
+            break;
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+        case '6':
+        case '7':
+        case '8':
+        case '9':
+            TransmitMode++;
+            WindowValue = LastButton - 48;
+            ADCDataReset();
+            break;
+        default:
+            break;
+    }
+
+}
+
+void TransmitLCD() {
     LCDPointer = 0;
     UCB1TBCNT = 32;
     UCB1I2CSA = LCD_Address; // Set the slave address in the module equal to the slave address
     UCB1CTLW0 |= UCTR; // Put into transmit mode
     UCB1CTLW0 |= UCTXSTT; // Generate the start condition
 }
-
 
 void LCDFormat() {
 
@@ -171,20 +309,31 @@ void TempConversion() {
 //-- Interrupt Service Routines -----------------------------------------------------------
 #pragma vector = EUSCI_B1_VECTOR
 __interrupt void EUSCI_B1_I2C_ISR(void) {
-    UCB1TXBUF = LCDMessage[LCDPointer];
-    LCDPointer++;
-    if (LCDPointer == 33) {
-        LCDPointer = 0;
+    switch (TransmitMode) {
+        case 0:
+            UCB1TXBUF = LCDMessage[LCDPointer];
+            LCDPointer++;
+            if (LCDPointer == 33) {
+                LCDPointer = 0;
+            }
+            break;
+        case 1:
+            UCB1TXBUF = LastButton;
+            TransmitMode--;
+        case 2:
+            LevelFlag = AveragedTemp > TempThreshold ? true : false;
+            UCB1TXBUF = LevelFlag;
+            TransmitMode--;
+        default:
+            TransmitMode = 0;
     }
 }
 
 //-ISR Timer B---------------------------------------------------------------------------
 #pragma vector=TIMER0_B0_VECTOR
 __interrupt void Timer_B_ISR(void){
-    // If password hasn't been fully entered, and timer triggered set pattern to 5 and reset to state 0
-    if (State < 5) {
-        State = 0;
-    }
+    State = 0;
+
     // Clear interrupt flag
     TB0CCTL0 &= ~CCIFG;
 }//-- End Timer_B_ISR ------------------------------------------------------------------
@@ -195,4 +344,32 @@ __interrupt void Timer_B1_ISR(void){
     TB0CCTL1 &= ~CCIE;
     TB0CCTL1 &= ~CCIFG;
 }//-- End Timer_B_ISR -----------------------------------------------------------------
+
+// ADC interrupt service routine
+#pragma vector=ADC_VECTOR
+__interrupt void ADC_ISR(void)
+{
+    switch(__even_in_range(ADCIV,ADCIV_ADCIFG))
+    {
+        case ADCIV_NONE:
+            break;
+        case ADCIV_ADCOVIFG:
+            break;
+        case ADCIV_ADCTOVIFG:
+            break;
+        case ADCIV_ADCHIIFG:
+            break;
+        case ADCIV_ADCLOIFG:
+            break;
+        case ADCIV_ADCINIFG:
+            break;
+        case ADCIV_ADCIFG:
+            ADCResult = ADCMEM0;
+            __bic_SR_register_on_exit(LPM0_bits);            // Clear CPUOFF bit from LPM0
+            State++;
+            break;
+        default:
+            break;
+    }
+}
 
