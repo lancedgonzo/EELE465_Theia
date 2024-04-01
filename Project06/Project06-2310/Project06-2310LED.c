@@ -1,8 +1,8 @@
 /*----------------------------------------------------------------------------------------------------------------------
     EELE465
-    Written by: Lance Gonzalez, Grant Kirkland
+    Written by: Lance Gonzalez, Grant Kirkland, Ken Vincent
     Working:
-    Project 04 - Mar 02 2024
+    Project 06 - Mar 31 2024
 
     Summary:
 
@@ -30,17 +30,6 @@
 
         P2.6 N/C  8
 
-
-    Important Variables/Registers:
-        Button 0x76543210
-            0-3 Col
-            4-7 Row
-        LED_Out
-            1:1 LED
-
-    MSP Errors:
-        P4.5 Inconsistent Input?
-    Todo:
 
 -----------------------------------------------------------------------------------------------------------------------*/
 #include <stdint.h>
@@ -84,7 +73,7 @@ volatile uint8_t PatternDCounter = 0;
 volatile uint8_t state = 0;
 volatile bool TimerFlag = false;
 volatile bool Timer2Flag = false;
-volatile bool HotCold = false;
+volatile bool HeatCool = false;
 
 int main(void) {
     // Stop watchdog timer
@@ -123,22 +112,27 @@ int main(void) {
     UCB0IE |= UCRXIE0;
     __enable_interrupt();
     LED_Out = 0x000;
-    //UpdateLED();
-   // LED_Out = 0x0AA;
 
+    // set clock for 3 Hz
+    TB0CTL |= TBCLR + TBSSEL__ACLK + MC__UP + ID__1;
+    TB0CCR0 = 5461;
+    TB0CCTL0 |= CCIE;
+    TB0CCTL0 &= ~CCIFG;
+    TB0R = 0;
 
     while (1) {
         if (TimerFlag) {
             TimerFlag = false;
             switch(state) {
-                case 0: LED_Out = 0x00; state += 4; break;
-                case 1: LED_Out = 0x00; state += 4; break;
-                case 2: LED_Out = 0x00; state += 4; break;
-                case 3: LED_Out = 0x00; state += 4; break;
-                case 4: PatternAUpdate(); break;
-                case 5: PatternBUpdate(); break;
-                case 6: PatternCUpdate(); break;
-                case 7: PatternDUpdate(); break;
+                case 0: PatternOff(); break;
+                case 1: PatternHeat(); break;
+                case 2: PatternCool(); break;
+                case 3:
+                    if (HeatCool)
+                        PatternSetpointHeat();
+                    else
+                        PatternSetpointCool();
+                    break;
             }
         }
         UpdateLED();
@@ -158,67 +152,38 @@ void UpdateLED() {
     P1OUT = ((LED_Out & BIT7) == BIT7) ? (P1OUT | BIT7) : (P1OUT & ~BIT7);
 }//End UpdateLED --------------------------------------------------------------------
 
-
-//-PatternA: Static pattern XOXOXOXO---------------------------------------------------------------
-void PatternAUpdate(){
-    //Set High on Collumns
-    LED_Out = 0x0AA;
-}//--END PatternA--------------------------------------------------------------------------------
-
-//-PatternB: Flashing and counts up--------------------------------------------------------------
-void PatternBUpdate() {
-    // set clock for 1 Hz
-    TB0CTL |= TBCLR + TBSSEL__ACLK + MC__UP + ID__1;
-    TB0CCR0 = 16384;
-    TB0CCTL0 |= CCIE;
-    TB0CCTL0 &= ~CCIFG;
-    TB0R = 0;
-    // Count and reset on rollover
-    PatternBCounter += 1;
-    LED_Out = PatternBCounter;
-}//--END PatternB--------------------------------------------------------------------------------
-
-//-PatternC: Scrolling Pattern ---------------------------------------------------------------
-void PatternCUpdate(){
-    // Set timer for 2s
-    TB0CTL |= TBCLR + TBSSEL__ACLK + MC__UP + ID__1;
-    TB0CCR0 = 32768;
-    TB0R = 0;
-    TB0CCTL0 |= CCIE;
-    TB0CCTL0 &= ~CCIFG;
-
-    // Count and reset on rollover
-    switch(PatternCCounter) {
-        case 0: LED_Out = 0x7F; break;
-        case 1: LED_Out = 0xBF; break;
-        case 2: LED_Out = 0xDF; break;
-        case 3: LED_Out = 0xEF; break;
-        case 4: LED_Out = 0xF7; break;
-        case 5: LED_Out = 0xFB; break;
-        case 6: LED_Out = 0xFD; break;
-        case 7: LED_Out = 0xFE; break;
+//-PatternHeat: Scrolling up pattern------------------------------------------------------------
+void PatternHeat() {
+    switch(PatternHeatCounter) {
+        case 0: LED_Out = 0x01; break;
+        case 1: LED_Out = 0x03; break;
+        case 2: LED_Out = 0x07; break;
+        case 3: LED_Out = 0x0F; break;
+        case 4: LED_Out = 0x1F; break;
+        case 5: LED_Out = 0x3F; break;
+        case 6: LED_Out = 0x7F; break;
+        case 7: LED_Out = 0xFF; break;
+        case 8: LED_Out = 0x00; PatternHeatCounter = -1; break;
     }
-    PatternCCounter += 1;
-    if (PatternCCounter >= 8){
-        PatternCCounter = 0;
-    }
-}//--END PatternC--------------------------------------------------------------------------------
+    PatternHeatCounter++;
+}//End PatternHeat --------------------------------------------------------------------
 
-//-PatternD: Scrolling double pattern------------------------------------------------------------
-void PatternDUpdate() {
-    // Set timer for 2s and 2.25s
-    TB0CTL |= TBCLR + TBSSEL__ACLK + MC__UP + ID__1;
-    TB0CCR0 = 5555;
-    TB0R = 0;
-    TB0CCTL0 |= CCIE;
-    TB0CCTL0 &= ~CCIFG;
-
-    if (HotCold) {
-        LED_Out = 0x00F;
-    } else {
-        LED_Out = 0x0F0;
+void PatternCool() {
+    switch(PatternCoolCounter) {
     }
-}//--END PatternD--------------------------------------------------------------------------------
+}
+
+void PatternSetpointHeat() {
+
+}
+
+void PatternSetpointCool() {
+
+}
+
+void PatternOff() {
+
+}
 
 //-ISR Timer B---------------------------------------------------------------------------
 #pragma vector=TIMER0_B0_VECTOR
@@ -228,79 +193,28 @@ __interrupt void Timer_B_ISR(void){
     TB0CCTL0 &= ~CCIFG;
 }//-- End Timer_B_ISR ------------------------------------------------------------------
 
-
-//-ISR Timer B1 ------------------------------------------------------------------------
-#pragma vector=TIMER0_B1_VECTOR
-__interrupt void Timer_B1_ISR(void){
-    LED_Out = 0x000; // turn off LEDs then disable interrupt and clear flag
-    TB0CCTL1 &= ~CCIE;
-    TB0CCTL1 &= ~CCIFG;
-}//-- End Timer_B_ISR -----------------------------------------------------------------
-
-#pragma vector=TIMER1_B0_VECTOR
-__interrupt void Timer2_B_ISR(void){
-    Timer2Flag = true;
-    // Clear interrupt flag
-    TB1CCTL0 &= ~CCIFG;
-}//-- End Timer_B_ISR ------------------------------------------------------------------
-
-#pragma vector = EUSCI_B0_VECTOR // Triggers when RX buffer is ready for data,
-// after start and ack
+// Triggers when RX buffer is ready for data, after start and ack
+#pragma vector = EUSCI_B0_VECTOR
 __interrupt void EUSCI_B0_I2C_ISR(void) {
 
-    TB0CTL |= TBCLR + TBSSEL__ACLK + MC__UP + ID__1;
-    TB0CCR0 = 16384;
-    TB0CCTL0 |= CCIE;
-    TB0CCTL0 &= ~CCIFG;
-    TB1CCTL0 &= ~CCIE;
     switch (UCB0RXBUF) {
         case 0:
-            HotCold = false;
+            HeatCool = false;
             break;
         case 1:
-            HotCold = true;
+            HeatCool = true;
             break;
         case 'A':
-            if (state != 4) {
-                LED_Out = 0xFF;
-                state = 0;
-            }
+            state = 1;
             break;
         case 'B':
-            if (state != 5) {
-                LED_Out = 0xFF;
-                state = 1;
-            }
+            state = 2;
             break;
         case 'C':
-            if (state != 6) {
-                LED_Out = 0xFF;
-                state = 2;
-            }
+            state = 3;
             break;
         case 'D':
-            if (state != 7) {
-                LED_Out = 0xFF;
-                state = 3;
-            }
-            break;
-        case '*':
-            switch(state) {
-            case 5: PatternBCounter = 0; break;
-            case 6: PatternCCounter = 0; break;
-            case 7: PatternDCounter = 0; break;
-            }
-            break;
-        case '?':
-            PatternBCounter = 0;
-            PatternCCounter = 0;
-            PatternDCounter = 0;
-            break;
-        case '#':
-            TB1CTL |= TBCLR + TBSSEL__ACLK + MC__UP + ID__1;
-            TB1CCR0 = 16384;
-            TB1CCTL0 |= CCIE;
-            TB1CCTL0 &= ~CCIFG;
+            state = 0;
             break;
     }
 }
