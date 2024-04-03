@@ -57,8 +57,8 @@
 #include <gpio.h>
 
 #include "keypad.h"
-#define LED_Address 0x013
 #define LCD_Address 0x046
+#define LED_Address 0x013
 #define TempThreshold 1000.0
 
 void Init_ADC();
@@ -89,6 +89,7 @@ bool CheckFlag = false;
 bool TransmitToLCD = true;
 char LCDMessage[32] = "12345678901234567890123456789012";
 uint8_t LCDPointer = 0;
+uint8_t LCDCounter = 0;
 
 // Temp
 uint16_t ADCResult = 0;
@@ -149,8 +150,12 @@ int main(void) {
             case 2:
                 ADCSave();
                 ADCAverage();
-                LCDFormat();
-                TransmitLCD();
+                if (LCDCounter == 6) {
+                    LCDFormat();
+                    TransmitLCD();
+                    LCDCounter = 0;
+                } else
+                    LCDCounter++;
                 State++;
                 break;
             case 99: // Test state for continuous transmit
