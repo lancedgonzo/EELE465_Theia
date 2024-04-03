@@ -300,10 +300,13 @@ void TransmitLCD() {
 
 void LCDFormat() {
 
+    sprintf(LCDMessage, sizeof(LCDMessage), "Enter N: ");
+    sprintf(LCDMessage, sizeof(LCDMessage), "Temp %.2fC", AveragedTemp);
 }
 
 void ADCToTemp() {
 
+    AveragedTemp = (ADCResult / 1024.0) * Vref * Conversion_Factor;
 }
 
 void TempConversion() {
