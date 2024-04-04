@@ -46,7 +46,7 @@
 
 -----------------------------------------------------------------------------------------------------------------------*/
 
-
+#include <stdio.h>
 #include <stdint.h>
 #include "msp430fr2355.h"
 #include <driverlib.h>
@@ -86,16 +86,21 @@ char LastButton = 0;
 bool CheckFlag = false;
 
 // LCD Output
-bool TransmitToLCD = true;
-char LCDMessage[32] = "12345678901234567890123456789012";
-uint8_t LCDPointer = 0;
+volatile bool TransmitToLCD = true;
+volatile char LCDMessage[32] = "12345678901234567890123456789012";
+volatile uint8_t LCDPointer = 0;
+volatile uint8_t LCDCounter = 0;
 
 // Temp
-uint16_t ADCResult = 0;
+volatile uint16_t ADCResult = 0;
 uint16_t Data[10];
-uint8_t DataPointer = 0;
-uint8_t WindowValue = 3;
+volatile uint8_t DataPointer = 0;
+volatile uint8_t WindowValue = 3;
 float AveragedTemp = 0;
+volatile float Celsius;
+volatile int Celsius_int;
+volatile char Ce[3];
+volatile int Kelvin;
 
 
 //-----------------------------------------------------------------------
@@ -124,12 +129,16 @@ int main(void) {
     TB0CCTL0 &= ~CCIFG;
 
     __enable_interrupt();
+    LCDFormat();
+    TransmitLCD();
+    __delay_cycles(5000);
 
     while(1) {
         if (CheckFlag) {
             LEDModeD = false;
             CheckButton();
             TransmitButton();
+            continue;
         }
         if (LEDModeD && AveragedTemp != 0) {
 
@@ -149,8 +158,12 @@ int main(void) {
             case 2:
                 ADCSave();
                 ADCAverage();
-                LCDFormat();
-                TransmitLCD();
+                if (LCDCounter == 6) {
+                    LCDFormat();
+                    TransmitLCD();
+                    LCDCounter = 0;
+                } else
+                    LCDCounter++;
                 State++;
                 break;
             case 99: // Test state for continuous transmit
@@ -161,8 +174,8 @@ int main(void) {
             default:
                 break;
         }
-
     }
+
 }
 
 void Init_I2C() {
@@ -224,9 +237,17 @@ void ADCAverage() {
     }
     AveragedTemp = AveragedTemp / (float) WindowValue;
 }
+
 void ADCDataReset() {
+    ADCCTL0 &= ~(ADCENC | ADCSC);                           // Sampling and conversion start
     DataPointer = 0;
     ADCResult = 0;
+    AveragedTemp = 0;
+    LCDPointer = 0;
+//    Celsius = 0;
+    Kelvin = 0;
+    State=2;
+    TB0R = 0;
     Data[0]=0;
     Data[1]=0;
     Data[2]=0;
@@ -265,6 +286,8 @@ void TransmitButton() {
             ADCDataReset();
             LCDFormat();
             TransmitLCD();
+            __delay_cycles(5000);
+            LCDCounter = 0;
             break;
         case '1':
         case '2':
@@ -275,15 +298,23 @@ void TransmitButton() {
         case '7':
         case '8':
         case '9':
-            TransmitMode++;
-            WindowValue = LastButton - 48;
+//            TransmitMode++;
+            while (LCDPointer != 0) {}
             ADCDataReset();
+            LCDFormat();
+            TransmitLCD();
+            __delay_cycles(5000);
+            WindowValue = LastButton - 48;
+            LCDCounter = 0;
+//            LCDFormat();
+ //           TransmitLCD();
             break;
         default:
             break;
     }
 
 }
+
 
 void TransmitLCD() {
     LCDPointer = 0;
@@ -294,14 +325,27 @@ void TransmitLCD() {
 }
 
 void LCDFormat() {
+    // clear LCDmessage[32]
+
+    ADCToTemp();
+    TempConversion();
+    if (AveragedTemp == 0)
+        sprintf(LCDMessage, "Enter n:        T =     K      C", Kelvin, Ce[0], Ce[1], Ce[2]);
+    else
+        sprintf(LCDMessage, "Enter n:        T = %d K %c%c.%c C", Kelvin, Ce[0], Ce[1], Ce[2]);
+
 
 }
 
 void ADCToTemp() {
-
+    Celsius = ((AveragedTemp)/3100)*100;
+    //find a way to make Clesius = averagetemp
 }
 
 void TempConversion() {
+    Kelvin = Celsius + 273;
+    Celsius_int = Celsius*10;
+    sprintf(Ce,"%d", Celsius_int);
 
 }
 
@@ -313,7 +357,7 @@ __interrupt void EUSCI_B1_I2C_ISR(void) {
         case 0:
             UCB1TXBUF = LCDMessage[LCDPointer];
             LCDPointer++;
-            if (LCDPointer == 33) {
+            if (LCDPointer == 32) {
                 LCDPointer = 0;
             }
             break;
