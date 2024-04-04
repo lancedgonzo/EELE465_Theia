@@ -11,11 +11,13 @@
 #include "msp430fr2310.h"
 #include <msp430.h>
 
-int data_in;
+int s = 0; 
+int data_in[32];
+int key = 0; 
 int loop;
 int input;
 int printput;
-int count = 0;
+int data_count = 0;
 
 /**
  * main.c
@@ -90,7 +92,6 @@ __enable_interrupt();
     return 0;
 }
 
-
 void set_ddr_2nd_row(){
     //clear RS and R/W
     P2OUT &= ~BIT6;
@@ -113,25 +114,39 @@ void set_ddr_2nd_row(){
     latch();
 }
 
-void print(int printput){
-    entry_mode();
+void new_sentence(){
+    home(); 
 
-    //set RS and clear R/W
-    P2OUT |= BIT6;
-    P2OUT &= ~BIT7;
+    //Display first sequence
+    for(s=0; s < 16; s++){
+        printput = data_in[s]; 
+        print(printput); 
+    }
 
-    //SETUP DB7 - DB4
-    P1OUT = (printput & 0b11110000);
+    set_ddr_2nd_row(); 
 
-    latch();
-
-    //SETUP DB3 - DB0
-    P1OUT = (printput & 0b00001111) << 4;
-
-    latch();
+    //Display second sentence
+    for(s=16; s <32; s++){
+        printput = data_in[s];
+        print(printput); 
+    }
 }
 
+void print(int printput){
+    entry_mode(); 
 
+    //Set RS and Clear R/W
+    P2OUT |= BIT6; 
+    P2OUT &= ~BIT7; 
+
+    P1OUT = (printput & 0b11110000); 
+
+    latch(); 
+
+    P1OUT = (printput & 0b00001111) << 4; 
+
+    latch(); 
+}
 
 void home(){
     //clear RS and R/W
@@ -154,8 +169,6 @@ void home(){
 
     latch();
 }
-
-
 
 void latch(){
     // set enable
@@ -260,20 +273,13 @@ void display_clear(){
 // ------------------------ interrupt service routines ------------------
 #pragma vector = EUSCI_B0_VECTOR
 __interrupt void EUSCI_B0_I2C_ISR(void){
-    data_in  = UCB0RXBUF;
-
-    print(data_in);
-    count++;
-
-    if(count == 16){
-        set_ddr_2nd_row();
-    }
-    else if(count == 32){
-        display_clear();
-        count = 0;
-    }
-    else if(data_in == '#'){
-        display_clear();
-        print(data_in);
-    }
+   
+        if(data_count == 32){
+            data_count = 0; 
+            new_sentence(); 
+        }
+        else{
+            data_in[data_count] = UCB0RXBUF; 
+            data_count++;
+        }
 }
