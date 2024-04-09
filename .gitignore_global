@@ -1,0 +1,17 @@
+#Ignore CCS files that mess up project builds
+**/Debug/*
+**/driverlib/*
+**/targetConfigs/*
+**/lnk_msp430fr2355.cmd
+**/.launches/*
+**/.settings/*
+**/.ccsproject
+**/.cproject
+**/.clangd
+**/.project
+Project03/Ken_Project3_main.c
+.theia/launch.json
+EELE465_Theia/
+/Debug/
+#.metadata/
+.jxbrowser.userdata/
