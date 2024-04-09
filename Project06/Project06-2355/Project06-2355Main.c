@@ -58,13 +58,11 @@
 
 #include "keypad.h"
 #include "analogdigital.h"
+#include "i2c.h"
 
-#define LED_Address 0x013
-#define LCD_Address 0x046
-#define ADC_Address 0x002
+
 #define TempThreshold 1000.0
 
-void Init_I2C();
 void LCDFormat();
 void TempConversion();
 void TransmitLCD();
@@ -76,8 +74,21 @@ uint8_t State = 0b00000000; // Peltier, Local and remote ADCs, RTC, Timer
     // 0-1: 0 Off, 1 Heat, 2 Cool, 3 Maintain
     // 2-3: 0 Start ADC, 1 Wait for Sample, 2 Save+Avg, 3 Wait for timer
     // 4-5: 0 Request Temp, 1 Wait for Response, 2 Save+Avg, 3 Wait for timer
-    // 6: 0 Request Time, 1 Wait for Response
-    // 7: Timer toggle 0 ADCs 1 RTC
+    // 6-7: 0 Request Time, 1 Wait for Response, 2 save and respond, 3 wait
+
+
+uint8_t SecondaryState = 0b00000000;
+    // 0: Key pressed
+    // 1-3: Timer stuff 1 sec loop
+        // 0 RTC
+        // 125 Local ADC
+        // 250 External ADC
+        // 375
+        // 500 LCD
+        // 625 Local ADC
+        // 750 External ADC
+        // 875
+    // Maybe peltier next state bits?
 
 uint8_t TransmitState = 0b00000000; // 0 LCD 1 LED 2 RTC 3 ADC, pending? 4-8?
 
@@ -92,11 +103,6 @@ void PeltierOff();
 void PeltierCool();
 void PeltierHeat();
 void PeltierMaintain();
-
-// LCD Output
-void LCDFormat();
-char LCDMessage[32] = "12345678901234567890123456789012";
-uint8_t LCDPointer = 0;
 
 // Temp
 uint8_t AveragingWindowValue = 3;
@@ -120,6 +126,8 @@ int main(void) {
     // to activate previously configured port settings
     PM5CTL0 &= ~LOCKLPM5;
 
+    // Timer configured for 1/8th of a second
+    //  ** TODO **
     TB0CTL |= TBSSEL__ACLK + MC__UP + ID__2;
     TB0CCR0 = 5460;
     TB0R = 0;
@@ -140,35 +148,37 @@ int main(void) {
         }
         // Peltier Device State
         switch (0b00000011 & State) {
-            case 0: PeltierOff(); break;
-            case 1: PeltierHeat(); break;
-            case 2: PeltierCool(); break;
-            case 3: PeltierMaintain(); break;
+            case 0: PeltierOff(); break; // off
+            case 1: PeltierHeat(); break; // heat
+            case 2: PeltierCool(); break; // cool
+            case 3: PeltierMaintain(); break; // maintain
             default:
                 break;
         }
         // MSP ADC State
         switch (0b00001100 & State) {
-            case 0:  break;
-            case 4:  break;
-            case 8:  break;
-            case 12: break;
+            case 0:  break; // Start sample
+            case 4:  break; // wait
+            case 8:  break; // save and average
+            case 12: break; // wait
             default:
                 break;
         }
         // LM92 State
         switch (0b00110000 & State) {
-            case 0:  break;
-            case 16:  break;
-            case 32:  break;
-            case 48:  break;
+            case 0:  break; // send message
+            case 16:  break; // wait
+            case 32:  break; // save and average
+            case 48:  break; // wait
             default:
                 break;
         }
         // RTC State
-        switch (0b01000000 & State) {
-            case 0:  break;
-            case 64:  break;
+        switch (0b11000000 & State) {
+            case 0:  break; // send message
+            case 64:  break; // wait
+            case 128: break; // save time
+            case 192: break; // wait
             default:
                 break;
         }
@@ -176,33 +186,6 @@ int main(void) {
 
     }
 }
-
-void Init_I2C() {
-
-    UCB1CTLW0 |= UCSWRST; // Put UCB1CTLW0 into software reset
-    UCB1CTLW0 |= UCSSEL_3; // Select mode 3
-    UCB1BRW = 10; // Something useful
-
-    UCB1CTLW0 |= UCMODE_3; // Mode 3
-    UCB1CTLW0 |= UCMST; // Master
-    UCB1CTLW0 |= UCTR; // Transmit mode
-
-    UCB1CTLW1 |= UCASTP_2; // Autostop enabled
-
-    UCB1CTLW0 &= ~UCSWRST; // Take out of Software Reset
-
-    UCB1IE |= UCTXIE0; // Enable TX interrupt
-    UCB1IE |= UCRXIE0; // Enable RX interrupt
-
-    //----- P4.6 and P4.7 for I2C ---
-    P4SEL1 &= ~BIT7;
-    P4SEL0 |= BIT7;
-
-    P4SEL1 &= ~BIT6;
-    P4SEL0 |= BIT6;
-}
-
-
 
 
 void ButtonResponse() {
@@ -243,13 +226,6 @@ void ButtonResponse() {
 
 }
 
-void TransmitLCD() {
-    LCDPointer = 0;
-    UCB1TBCNT = 32;
-    UCB1I2CSA = LCD_Address; // Set the slave address in the module equal to the slave address
-    UCB1CTLW0 |= UCTR; // Put into transmit mode
-    UCB1CTLW0 |= UCTXSTT; // Generate the start condition
-}
 
 bool CheckTempThreshold() { return false;}
 
@@ -258,19 +234,28 @@ void PeltierCool() {}
 void PeltierHeat() {}
 void PeltierMaintain() {}
 
-void LCDFormat() {}
 
 //-- Interrupt Service Routines -----------------------------------------------------------
-#pragma vector = EUSCI_B1_VECTOR
-__interrupt void EUSCI_B1_I2C_ISR(void) {
-}
 
 //-ISR Timer B---------------------------------------------------------------------------
 #pragma vector=TIMER0_B0_VECTOR
 __interrupt void Timer_B_ISR(void){
-    switch (0b01000000 & State) {
-        case 0:  break;
-        case 128:  break;
+    switch (0b00001110 & SecondaryState) {
+        case 10:        // Local ADC
+        case 2:         // Local ADC
+            State &= 0b11110011;
+            break;
+        case 12:        // External ADC
+        case 4:         // External ADC
+            State &= 0b11001111;
+            break;
+        case 0:         // RTC
+            State &= 0b00111111;
+            break;
+        case 8:  break; // LCD
+
+        case 14:  break; // Wait
+        case 6:  break; // Wait
         default:
             break;
     }
