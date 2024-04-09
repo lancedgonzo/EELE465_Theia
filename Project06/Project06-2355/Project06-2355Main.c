@@ -96,7 +96,7 @@ uint8_t TransmitState = 0b00000000; // 0 LCD 1 LED 2 RTC 3 ADC, 4 pending LCD, 5
 // Keypad
 void ButtonResponse();
 char LastButton = 0;
-bool KeyPressedFlag = false;
+
 
 // Peltier
 void PeltierOff();
@@ -107,6 +107,7 @@ void PeltierMaintain();
 bool HeatCool = false;
 
 // Temp
+uint8_t Setpoint = 0;
 uint8_t AveragingWindowValue = 3;
 extern bool CheckTempThreshold();
 
@@ -142,7 +143,7 @@ int main(void) {
     __enable_interrupt();
 
     while(1) {
-        if (KeyPressedFlag) {
+        if (SecondaryState & KeyPressedFlag) {
             ButtonResponse();
             continue;
         }
@@ -199,6 +200,7 @@ void ButtonResponse() {
 
     switch(LastButton) {
         case '*':
+            SecondaryState ^= KeypadModeToggle;
             break;
         case 'A':
         case 'B':
@@ -209,10 +211,9 @@ void ButtonResponse() {
             TransmitState |= StartTxLED;
             break;
         case '#':
-
             LocalADCDataReset();
-            LCDFormat();
-            TransmitLCD();
+            RemoteADCDataReset();
+            TransmitState |= StartTxLCD + StartTxLED;
             break;
         case '1':
         case '2':
@@ -223,13 +224,17 @@ void ButtonResponse() {
         case '7':
         case '8':
         case '9':
-            if (SecondaryState & 0b00010000) { // If in Averaging mode
+            if (SecondaryState & KeypadModeToggle) { // If in Averaging mode
                 AveragingWindowValue = LastButton - 48;
-            } else { // If in setpoint mode
-
+            }
+        case '0':
+            if (SecondaryState & ~KeypadModeToggle) {
+                if (Setpoint >= 10) {
+                    Setpoint = 0;
+                }
+                Setpoint = Setpoint * 10 + (LastButton - 48)
             }
             break;
-        case '0':
         default:
             break;
     }

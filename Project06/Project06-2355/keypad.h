@@ -30,7 +30,10 @@
 #define KEY_C 0x048     //  72
 #define KEY_D 0x088     // 136
 
-extern bool KeyPressedFlag;
+#define KeyPressedFlag 0b00000001
+#define KeypadModeToggle 0b00010000
+
+extern uint8_t SecondaryState;
 extern char LastButton;
 
 //Function Declarations ------------------------------------------------------

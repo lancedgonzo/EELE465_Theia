@@ -26,7 +26,7 @@ void CheckButton() {
     CheckRow();
     KeyToChar();
     SwitchDebounce();
-    KeyPressedFlag = false;
+    SecondaryState &= ~KeyPressedFlag;
 }//--END CheckButton-----------------------------------------------------------------------------------
 
 //-ColumnInput: Sets row pins as OUTPUT---------------------------------------------------------------------
@@ -139,7 +139,7 @@ void SwitchDebounce(){
 #pragma vector = PORT3_VECTOR
 #pragma vector = PORT4_VECTOR
 __interrupt void ISR_Button_Pressed(void) {
-    KeyPressedFlag = true; // Tell system to check which key was pressed
+    SecondaryState |= KeyPressedFlag;
     GPIO_clearInterrupt(KEYPAD_ROW1(0), KEYPAD_ROW1(1));
     GPIO_clearInterrupt(KEYPAD_ROW2(0), KEYPAD_ROW2(1));
     GPIO_clearInterrupt(KEYPAD_ROW3(0), KEYPAD_ROW3(1));
