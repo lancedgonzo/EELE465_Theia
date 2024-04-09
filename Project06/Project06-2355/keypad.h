@@ -30,7 +30,7 @@
 #define KEY_C 0x048     //  72
 #define KEY_D 0x088     // 136
 
-extern bool CheckFlag;
+extern bool KeyPressedFlag;
 extern char LastButton;
 
 //Function Declarations ------------------------------------------------------

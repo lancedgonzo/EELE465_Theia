@@ -79,6 +79,7 @@ int main(void) {
     // Stop watchdog timer
     WDTCTL = WDTPW | WDTHOLD;
 
+    // Setup I2C as slave
     UCB0CTLW0 |= UCSWRST; // SW reset
     UCB0CTLW0 |= UCMODE_3;
     UCB0CTLW0 &= ~UCMST;
@@ -98,6 +99,7 @@ int main(void) {
     P1SEL1 &= ~BIT2;
     P1SEL0 |= BIT2;
 
+    // Setup pins as output
     GPIO_setAsOutputPin(1, P0);
     GPIO_setAsOutputPin(1, P1);
     GPIO_setAsOutputPin(1, P4);
