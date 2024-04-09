@@ -42,6 +42,7 @@ void CheckRow(void);
 void CheckButton(void);
 void KeyToChar(void);
 void SwitchDebounce(void);
+void ButtonResponse(void);
 //--------------------------------------------------------------------------
 
 

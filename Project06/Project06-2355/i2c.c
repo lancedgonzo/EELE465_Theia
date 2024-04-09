@@ -2,6 +2,7 @@
 
 #include "driverlib.h"
 
+uint8_t TransmitCounter = 0;
 
 void Init_I2C() {
 
@@ -29,7 +30,7 @@ void Init_I2C() {
 }
 
 void TransmitLCD() {
-    LCDPointer = 0;
+    TransmitCounter = 32;
     UCB1TBCNT = 32;
     UCB1I2CSA = LCD_Address; // Set the slave address in the module equal to the slave address
     UCB1CTLW0 |= UCTR; // Put into transmit mode
@@ -37,7 +38,11 @@ void TransmitLCD() {
 }
 
 void TransmitLED() {
-
+    TransmitCounter = 2;
+    UCB1TBCNT = 2;
+    UCB1I2CSA = LED_Address; // Set the slave address in the module equal to the slave address
+    UCB1CTLW0 |= UCTR; // Put into transmit mode
+    UCB1CTLW0 |= UCTXSTT; // Generate the start condition
 }
 
 void TransmitRTC() {
@@ -52,5 +57,21 @@ void LCDFormat() {}
 
 #pragma vector = EUSCI_B1_VECTOR
 __interrupt void EUSCI_B1_I2C_ISR(void) {
+    switch(TransmitState & 0b00001111) {
+        case 1: // LCD
+        case 2: // LED
+            if (TransmitCounter == 2) {
+                UCB1TXBUF = HeatCool;
+            } else {
+                UCB1TXBUF = LastButton;
+            }
+            TransmitCounter--;
+            break;
+        case 4: // RTC
+        case 8: // ADC
 
+    }
+    if (TransmitCounter == 0) {
+        TransmitState &= 0b11110000;
+    }
 }

@@ -14,10 +14,10 @@ extern unsigned int functiongenerator_ADC_Result;
 
 
 void Init_ADC();
-void ADCStart();
-void ADCDataReset();
-void ADCSave();
-void ADCAverage();
+void LocalADCStart();
+void LocalADCDataReset();
+void LocalADCSave();
+void LocalADCAverage();
 bool CheckTempThreshold();
 
 

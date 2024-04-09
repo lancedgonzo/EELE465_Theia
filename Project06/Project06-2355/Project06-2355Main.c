@@ -104,6 +104,8 @@ void PeltierCool();
 void PeltierHeat();
 void PeltierMaintain();
 
+bool HeatCool = false;
+
 // Temp
 uint8_t AveragingWindowValue = 3;
 extern bool CheckTempThreshold();
@@ -158,7 +160,7 @@ int main(void) {
         }
         // MSP ADC State
         switch (0b00001100 & State) {
-            case 0:  break; // Start sample
+            case 0: LocalADCStart(); State += 4;  break; // Start sample
             case 4:  break; // wait
             case 8:  break; // save and average
             case 12: break; // wait
@@ -197,13 +199,12 @@ void ButtonResponse() {
 //    UCB1CTLW0 |= UCTXSTT; // Generate the start condition
 
     switch(LastButton) {
-        case '0':
             break;
-        case 'D':
         case '*':
         case 'A':
         case 'B':
         case 'C':
+        case 'D':
             break;
         case '#':
             ADCDataReset();
@@ -219,8 +220,13 @@ void ButtonResponse() {
         case '7':
         case '8':
         case '9':
-            AveragingWindowValue = LastButton - 48;
+            if (SecondaryState & 0b00010000) { // If in Averaging mode
+                AveragingWindowValue = LastButton - 48;
+            } else { // If in setpoint mode
+
+            }
             break;
+        case '0':
         default:
             break;
     }

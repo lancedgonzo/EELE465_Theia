@@ -6,7 +6,9 @@
 
 uint16_t LocalADCResult = 0;
 uint16_t LocalADCData[10];
+uint16_t RemoteADCData[10];
 uint8_t LocalDataPointer = 0;
+
 float AveragedTemp = 0;
 
 
@@ -28,13 +30,13 @@ void Init_ADC() {
 
 }
 
-void ADCStart() {
+void LocalADCStart() {
     ADCCTL0 |= ADCENC | ADCSC;                           // Sampling and conversion start
     __bis_SR_register(LPM0_bits | GIE);                  // LPM0, ADC_ISR will force exit
     __no_operation();                                    // For debug only
 }
 
-void ADCDataReset() {
+void LocalADCDataReset() {
     LocalDataPointer = 0;
     LocalADCResult = 0;
     LocalADCData[0]=0;
@@ -49,7 +51,7 @@ void ADCDataReset() {
     LocalADCData[9]=0;
 }
 
-void ADCSave() {
+void LocalADCSave() {
     LocalADCData[LocalDataPointer] = LocalADCResult;
     LocalDataPointer++;
     if (LocalDataPointer == AveragingWindowValue) {
@@ -57,7 +59,7 @@ void ADCSave() {
     }
 }
 
-void ADCAverage() {
+void LocalADCAverage() {
     AveragedTemp = 0;
     for (j = 0; j < AveragingWindowValue; j++) {
         if (LocalADCData[j] == 0) {
@@ -67,6 +69,21 @@ void ADCAverage() {
         AveragedTemp += (float) LocalADCData[j];
     }
     AveragedTemp = AveragedTemp / (float) AveragingWindowValue;
+}
+
+void RemoteADCDataReset() {
+    RemoteDataPointer = 0;
+    RemoteADCResult = 0;
+    RemoteADCData[0]=0;
+    RemoteADCData[1]=0;
+    RemoteADCData[2]=0;
+    RemoteADCData[3]=0;
+    RemoteADCData[4]=0;
+    RemoteADCData[5]=0;
+    RemoteADCData[6]=0;
+    RemoteADCData[7]=0;
+    RemoteADCData[8]=0;
+    RemoteADCData[9]=0;
 }
 
 // ADC interrupt service routine
