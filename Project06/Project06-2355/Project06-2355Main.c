@@ -232,7 +232,7 @@ void ButtonResponse() {
                 if (Setpoint >= 10) {
                     Setpoint = 0;
                 }
-                Setpoint = Setpoint * 10 + (LastButton - 48)
+                Setpoint = Setpoint * 10 + (LastButton - 48);
             }
             break;
         default:

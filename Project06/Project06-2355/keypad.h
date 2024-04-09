@@ -1,6 +1,7 @@
 #ifndef KEYPAD_H_
 #define KEYPAD_H_
 
+#include "driverlib.h"
 #include "stdbool.h"
 
 #define KEYPAD_COL1(r) (r == 0) ? 1 : 0x0040 // 1.6
