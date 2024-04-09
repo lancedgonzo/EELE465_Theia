@@ -1,14 +1,13 @@
 /*----------------------------------------------------------------------------------------------------------------------
     EELE465
-    Written by: Lance Gonzalez, Grant Kirkland
+    Written by: Lance Gonzalez, Grant Kirkland, Ken Vincent
     Working:
-    Project 05
+    Project 06
 
     Summary:
 
     Version Summary:
-        v01: Working Project 04
-        v02: Output 32 chars
+        v01:
 
     MSP430FR2355:
          4 - SBWTCK - SBWTCK
@@ -80,7 +79,7 @@ uint8_t State = 0b00000000; // Peltier, Local and remote ADCs, RTC, Timer
 uint8_t SecondaryState = 0b00000000;
     // 0: Key pressed
     // 1-3: Timer stuff 1 sec loop
-        // 0 RTC
+        // 000 RTC
         // 125 Local ADC
         // 250 External ADC
         // 375
@@ -121,6 +120,8 @@ int main(void) {
 
     GPIO_setAsOutputPin(1, 0x04);
     P1OUT |= BIT3;
+    GPIO_setAsOutputPin(1, 0x00);
+    P1OUT &= ~BIT0;
 
     // Disable the GPIO power-on default high-impedance mode
     // to activate previously configured port settings
@@ -240,6 +241,7 @@ void PeltierMaintain() {}
 //-ISR Timer B---------------------------------------------------------------------------
 #pragma vector=TIMER0_B0_VECTOR
 __interrupt void Timer_B_ISR(void){
+    P1OUT ^= BIT0;
     switch (0b00001110 & SecondaryState) {
         case 10:        // Local ADC
         case 2:         // Local ADC
