@@ -36,10 +36,21 @@ void TransmitLCD() {
     UCB1CTLW0 |= UCTXSTT; // Generate the start condition
 }
 
+void TransmitLED() {
+
+}
+
+void TransmitRTC() {
+
+}
+
+void ReceiveRTC() {
+
+}
 
 void LCDFormat() {}
 
 #pragma vector = EUSCI_B1_VECTOR
 __interrupt void EUSCI_B1_I2C_ISR(void) {
-}
 
+}

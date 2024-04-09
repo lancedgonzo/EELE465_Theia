@@ -70,10 +70,10 @@ void TransmitLCD();
 
 // State Variables
 uint8_t State = 0b00000000; // Peltier, Local and remote ADCs, RTC, Timer
-    // 0-1: 0 Off, 1 Heat, 2 Cool, 3 Maintain
-    // 2-3: 0 Start ADC, 1 Wait for Sample, 2 Save+Avg, 3 Wait for timer
-    // 4-5: 0 Request Temp, 1 Wait for Response, 2 Save+Avg, 3 Wait for timer
-    // 6-7: 0 Request Time, 1 Wait for Response, 2 save and respond, 3 wait
+    // 0-1: 0 Off, 1 Heat, 2 Cool, 3 Maintain                                   Peltier Device
+    // 2-3: 0 Start ADC, 1 Wait for Sample, 2 Save+Avg, 3 Wait for timer        Local ADC
+    // 4-5: 0 Request Temp, 1 Wait for Response, 2 Save+Avg, 3 Wait for timer   Remote ADC
+    // 6-7: 0 Request Time, 1 Wait for Response, 2 save and respond, 3 wait     RTC
 
 
 uint8_t SecondaryState = 0b00000000;
@@ -87,6 +87,7 @@ uint8_t SecondaryState = 0b00000000;
         // 625 Local ADC
         // 750 External ADC
         // 875
+    // 4: Setpoint enter vs Window Averaging enter
     // Maybe peltier next state bits?
 
 uint8_t TransmitState = 0b00000000; // 0 LCD 1 LED 2 RTC 3 ADC, pending? 4-8?
@@ -140,7 +141,6 @@ int main(void) {
 
     while(1) {
         if (KeyPressedFlag) {
-            CheckButton();
             ButtonResponse();
             continue;
         }
