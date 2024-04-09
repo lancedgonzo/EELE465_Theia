@@ -31,22 +31,22 @@ void Init_I2C() {
 
 // TransmitState 0 LCD 1 LED 2 RTC 3 ADC, 4 pending LCD, 5 pending LED, 6 pending RTC 7 pending ADC
 void TransmitStart() {
-    if ((TransmitState & 0b00001111) == 0) { // if nothing is transmitting
-        if (TransmitState & 0b00010000) // if LCD pending
+    if ((TransmitState & ~PendingBits) == 0) { // if nothing is transmitting
+        if (TransmitState & StartTxLCD) // if LCD pending
             TransmitLCD();
-        else if (TransmitState & 0b00100000) // if LED pending
+        else if (TransmitState & StartTxLED) // if LED pending
             TransmitLED();
-        else if (TransmitState & 0b01000000) // if RTC pending
+        else if (TransmitState & StartTxRTC) // if RTC pending
             TransmitRTC();
-        else if (TransmitState & 0b10000000) // if ADC Pending
+        else if (TransmitState & StartTxADC) // if ADC Pending
             TransmitADC();
 
     }
 }
 
 void TransmitLCD() {
-    TransmitState &= ~0b00010000;
-    TransmitState |= 0b00000001;
+    TransmitState &= ~StartTxLCD;
+    TransmitState |= TxLCD;
     TransmitCounter = 32;
     UCB1TBCNT = 32;
     UCB1I2CSA = LCD_Address; // Set the slave address in the module equal to the slave address
@@ -55,8 +55,8 @@ void TransmitLCD() {
 }
 
 void TransmitLED() {
-    TransmitState &= ~0b00100000;
-    TransmitState |= 0b00000010;
+    TransmitState &= ~StartTxLED;
+    TransmitState |= TxLED;
     TransmitCounter = 2;
     UCB1TBCNT = 2;
     UCB1I2CSA = LED_Address; // Set the slave address in the module equal to the slave address
@@ -65,8 +65,8 @@ void TransmitLED() {
 }
 
 void TransmitRTC() {
-    TransmitState &= ~0b01000000;
-    TransmitState |= 0b00000100;
+    TransmitState &= ~StartTxRTC;
+    TransmitState |= TxRTC;
 }
 
 void ReceiveRTC() {
@@ -74,8 +74,8 @@ void ReceiveRTC() {
 }
 
 void TransmitADC() {
-    TransmitState &= ~0b10000000;
-    TransmitState |= 0b00001000;
+    TransmitState &= ~StartTxADC;
+    TransmitState |= TxADC;
 
 }
 void ReceiveADC() {}
@@ -85,7 +85,7 @@ void LCDFormat() {}
 
 #pragma vector = EUSCI_B1_VECTOR
 __interrupt void EUSCI_B1_I2C_ISR(void) {
-    switch(TransmitState & 0b00001111) {
+    switch(TransmitState & ~PendingBits) {
         case 1: // LCD
         case 2: // LED
             if (TransmitCounter == 2) {
@@ -100,6 +100,6 @@ __interrupt void EUSCI_B1_I2C_ISR(void) {
 
     }
     if (TransmitCounter == 0) {
-        TransmitState &= 0b11110000;
+        TransmitState &= PendingBits;
     }
 }

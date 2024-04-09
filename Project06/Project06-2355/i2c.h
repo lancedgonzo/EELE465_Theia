@@ -7,6 +7,16 @@
 #define LCD_Address 0x046
 #define ADC_Address 0x002
 
+#define StartTxLCD 0b00010000
+#define StartTxLED 0b00100000
+#define StartTxRTC 0b01000000
+#define StartTxADC 0b10000000
+#define TxLCD 0b00000001;
+#define TxLED 0b00000010;
+#define TxRTC 0b00000100;
+#define TxADC 0b00001000;
+
+#define PendingBits 0b11110000;
 
 void Init_I2C();
 void TransmitStart();

@@ -151,16 +151,16 @@ int main(void) {
         }
         // Peltier Device State
         switch (0b00000011 & State) {
-            case 0: PeltierOff(); break; // off
-            case 1: PeltierHeat(); break; // heat
-            case 2: PeltierCool(); break; // cool
-            case 3: PeltierMaintain(); break; // maintain
+            case 0: PeltierHeat(); break; // off
+            case 1: PeltierCool(); break; // heat
+            case 2: PeltierMaintain(); break; // cool
+            case 3: PeltierOff(); break; // maintain
             default:
                 break;
         }
         // MSP ADC State
         switch (0b00001100 & State) {
-            case 0: LocalADCStart(); State += 4;  break; // Start sample
+            case 0: LocalADCStart(); State += 0b00000100;  break; // Start sample
             case 4:  break; // wait
             case 8:  break; // save and average
             case 12: break; // wait
@@ -169,7 +169,7 @@ int main(void) {
         }
         // LM92 State
         switch (0b00110000 & State) {
-            case 0: TransmitState |= 0b10000000; State += 0b00010000;  break; // send message
+            case 0: TransmitState |= StartTxADC; State += 0b00010000;  break; // send message
             case 16:  break; // wait
             case 32:  break; // save and average
             case 48:  break; // wait
@@ -199,12 +199,17 @@ void ButtonResponse() {
 
     switch(LastButton) {
         case '*':
+            break;
         case 'A':
         case 'B':
         case 'C':
         case 'D':
+            State &= 0b11111100;
+            State |= LastButton - 'A';
+            TransmitState |= StartTxLED;
             break;
         case '#':
+
             LocalADCDataReset();
             LCDFormat();
             TransmitLCD();
@@ -259,7 +264,7 @@ __interrupt void Timer_B_ISR(void){
             State &= 0b00111111;
             break;
         case 8:         // LCD
-            TransmitState |= 0b00010000;
+            TransmitState |= StartTxLCD;
             break;
         case 14:  break; // Wait
         case 6:  break; // Wait
