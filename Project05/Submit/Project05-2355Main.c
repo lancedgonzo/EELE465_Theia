@@ -77,6 +77,7 @@ uint8_t State = 0; // 0 - wait for key, 1-3 - correct button pressed for passwor
 
 bool TransmitToLED = false;
 bool TimerFlag = false;
+bool LEDModeD = false; // If LED Mode is set to D
 bool LevelFlag = false; // If ADC was last under level
  uint8_t j = 0;
 
@@ -92,15 +93,15 @@ volatile uint8_t LCDCounter = 0;
 
 // Temp
 volatile uint16_t ADCResult = 0;
-uint16_t Data[10];
+volatile uint16_t Data[10];
 volatile uint8_t DataPointer = 0;
 volatile uint8_t WindowValue = 3;
-float AveragedTemp = 0;
+volatile float AveragedTemp = 0;
+volatile float Voltage;
 volatile float Celsius;
-volatile int Celsius_int;
-volatile char Ce[3];
+volatile int CelsiusInteger;
+volatile char CelsiusChar[3];
 volatile int Kelvin;
-
 
 //-----------------------------------------------------------------------
 
@@ -122,7 +123,7 @@ int main(void) {
 
     TimerFlag = true;
     TB0CTL |= TBSSEL__ACLK + MC__UP + ID__2;
-    TB0CCR0 = 5460;
+    TB0CCR0 = 5475;
     TB0R = 0;
     TB0CCTL0 |= CCIE;
     TB0CCTL0 &= ~CCIFG;
@@ -134,11 +135,12 @@ int main(void) {
 
     while(1) {
         if (CheckFlag) {
+            LEDModeD = false;
             CheckButton();
             TransmitButton();
             continue;
         }
-        if (AveragedTemp != 0) {
+        if (LEDModeD && AveragedTemp != 0) {
 
             if ((!LevelFlag && (AveragedTemp > TempThreshold)) || (LevelFlag && (AveragedTemp <= TempThreshold))) {
                 TransmitLED();
@@ -155,7 +157,7 @@ int main(void) {
             case 2:
                 ADCSave();
                 ADCAverage();
-                if (LCDCounter == 6) {
+                if (LCDCounter == 5) {
                     LCDFormat();
                     TransmitLCD();
                     LCDCounter = 0;
@@ -171,8 +173,8 @@ int main(void) {
             default:
                 break;
         }
-    }
 
+    }
 }
 
 void Init_I2C() {
@@ -234,17 +236,15 @@ void ADCAverage() {
     }
     AveragedTemp = AveragedTemp / (float) WindowValue;
 }
-
 void ADCDataReset() {
-//    ADCCTL0 &= ~(ADCENC | ADCSC);                           // Sampling and conversion start
+    ADCCTL0 &= ~(ADCENC | ADCSC);
     DataPointer = 0;
     ADCResult = 0;
     AveragedTemp = 0;
     LCDPointer = 0;
-    LCDCounter = 0;
 //    Celsius = 0;
     Kelvin = 0;
-    State=0;
+    State=2;
     TB0R = 0;
     Data[0]=0;
     Data[1]=0;
@@ -301,13 +301,13 @@ void TransmitButton() {
 }
 
 void TransmitLED() {
+    while (LCDPointer != 0) {}
     TransmitToLED = true;
-    LCDPointer = 1;
+    LCDPointer = 0;
     UCB1TBCNT = 2;
     UCB1I2CSA = LED_Address; // Set the slave address in the module equal to the slave address
     UCB1CTLW0 |= UCTR; // Put into transmit mode
     UCB1CTLW0 |= UCTXSTT; // Generate the start condition
-    while (LCDPointer != 0) {}
 }
 
 void TransmitLCD() {
@@ -321,27 +321,32 @@ void TransmitLCD() {
 }
 
 void LCDFormat() {
-    // clear LCDmessage[32]
-
     ADCToTemp();
     TempConversion();
-    if (Data[0] == 0)
-        sprintf(LCDMessage, "Enter n:        T =     K      C");
+    if (Data[WindowValue - 1] == 0)
+        sprintf(LCDMessage, "Enter n:    n=%d T =     K      C", WindowValue);
     else
-        sprintf(LCDMessage, "Enter n:        T = %d K %c%c.%c C", Kelvin, Ce[0], Ce[1], Ce[2]);
-
-
+        sprintf(LCDMessage, "Enter n:    n=%d T = %d K %c%c.%c C", WindowValue, Kelvin, CelsiusChar[0], CelsiusChar[1], CelsiusChar[2]);
+    LCDMessage[30] = 0xDF;
 }
 
 void ADCToTemp() {
-    Celsius = ((AveragedTemp)/3100)*100;
-    //find a way to make Clesius = averagetemp
+    Voltage = AveragedTemp/4096.0*3.3;
+    Celsius = (Voltage - 1.8663) * -85.543;
 }
 
 void TempConversion() {
-    Kelvin = Celsius + 273;
-    Celsius_int = Celsius*10;
-    sprintf(Ce,"%d", Celsius_int);
+    Kelvin = 273 + Celsius;
+    CelsiusInteger = (int) (Celsius*10);
+    sprintf(CelsiusChar,"%d", CelsiusInteger);
+    if (CelsiusChar[1] == 0) {
+        CelsiusChar[1] = CelsiusChar[0];
+        CelsiusChar[0] = '0';
+    }
+    if (CelsiusChar[2] == 0) {
+        CelsiusChar[2] = CelsiusChar[1];
+        CelsiusChar[1] = '0';
+    }
 
 }
 

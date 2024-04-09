@@ -46,7 +46,7 @@
 
 -----------------------------------------------------------------------------------------------------------------------*/
 
-
+#include <stdio.h>
 #include <stdint.h>
 #include "msp430fr2355.h"
 #include <driverlib.h>
@@ -75,7 +75,7 @@ void TransmitLCD();
 //Vairable Declarations-----------------------------------------------------
 uint8_t State = 0; // 0 - wait for key, 1-3 - correct button pressed for password,
 
-uint8_t TransmitMode = 0;
+bool TransmitToLED = false;
 bool TimerFlag = false;
 bool LEDModeD = false; // If LED Mode is set to D
 bool LevelFlag = false; // If ADC was last under level
@@ -87,19 +87,21 @@ bool CheckFlag = false;
 
 // LCD Output
 volatile bool TransmitToLCD = true;
-volatile char LCDMessage[32] = "12345678901234567890123456789012";
+char LCDMessage[32] = "12345678901234567890123456789012";
 volatile uint8_t LCDPointer = 0;
 volatile uint8_t LCDCounter = 0;
 
 // Temp
 volatile uint16_t ADCResult = 0;
-uint16_t Data[10];
+volatile uint16_t Data[10];
 volatile uint8_t DataPointer = 0;
 volatile uint8_t WindowValue = 3;
-float AveragedTemp = 0;
+volatile float AveragedTemp = 0;
+volatile float Voltage;
 volatile float Celsius;
+volatile int CelsiusInteger;
+volatile char CelsiusChar[3];
 volatile int Kelvin;
-
 
 //-----------------------------------------------------------------------
 
@@ -121,7 +123,7 @@ int main(void) {
 
     TimerFlag = true;
     TB0CTL |= TBSSEL__ACLK + MC__UP + ID__2;
-    TB0CCR0 = 5460;
+    TB0CCR0 = 5475;
     TB0R = 0;
     TB0CCTL0 |= CCIE;
     TB0CCTL0 &= ~CCIFG;
@@ -141,8 +143,7 @@ int main(void) {
         if (LEDModeD && AveragedTemp != 0) {
 
             if ((!LevelFlag && (AveragedTemp > TempThreshold)) || (LevelFlag && (AveragedTemp <= TempThreshold))) {
-                TransmitMode++;
-                TransmitButton();
+                TransmitLED();
             }
 
         }
@@ -156,7 +157,7 @@ int main(void) {
             case 2:
                 ADCSave();
                 ADCAverage();
-                if (LCDCounter == 6) {
+                if (LCDCounter == 5) {
                     LCDFormat();
                     TransmitLCD();
                     LCDCounter = 0;
@@ -236,7 +237,7 @@ void ADCAverage() {
     AveragedTemp = AveragedTemp / (float) WindowValue;
 }
 void ADCDataReset() {
-    ADCCTL0 &= ~(ADCENC | ADCSC);                           // Sampling and conversion start
+    ADCCTL0 &= ~(ADCENC | ADCSC);
     DataPointer = 0;
     ADCResult = 0;
     AveragedTemp = 0;
@@ -267,24 +268,17 @@ void TransmitButton() {
     switch(LastButton) {
         case '0':
             break;
-        case 'D':
-            LEDModeD = true;
         case '*':
         case 'A':
         case 'B':
         case 'C':
-            TransmitMode++;
-            UCB1TBCNT = TransmitMode;
-            UCB1I2CSA = LED_Address;
-            UCB1CTLW0 |= UCTR;
-            UCB1CTLW0 |= UCTXSTT;
+        case 'D':
+            TransmitLED();
             break;
         case '#':
             ADCDataReset();
             LCDFormat();
             TransmitLCD();
-            __delay_cycles(5000);
-            LCDCounter = 0;
             break;
         case '1':
         case '2':
@@ -295,16 +289,10 @@ void TransmitButton() {
         case '7':
         case '8':
         case '9':
-//            TransmitMode++;
-            while (LCDPointer != 0) {}
             ADCDataReset();
+            WindowValue = LastButton - 48;
             LCDFormat();
             TransmitLCD();
-            __delay_cycles(5000);
-            WindowValue = LastButton - 48;
-            LCDCounter = 0;
-//            LCDFormat();
- //           TransmitLCD();
             break;
         default:
             break;
@@ -312,7 +300,19 @@ void TransmitButton() {
 
 }
 
+void TransmitLED() {
+    while (LCDPointer != 0) {}
+    TransmitToLED = true;
+    LCDPointer = 0;
+    UCB1TBCNT = 2;
+    UCB1I2CSA = LED_Address; // Set the slave address in the module equal to the slave address
+    UCB1CTLW0 |= UCTR; // Put into transmit mode
+    UCB1CTLW0 |= UCTXSTT; // Generate the start condition
+}
+
 void TransmitLCD() {
+    while (LCDPointer != 0) {}
+    TransmitToLED = false;
     LCDPointer = 0;
     UCB1TBCNT = 32;
     UCB1I2CSA = LCD_Address; // Set the slave address in the module equal to the slave address
@@ -321,14 +321,31 @@ void TransmitLCD() {
 }
 
 void LCDFormat() {
-
+    ADCToTemp();
+    TempConversion();
+    if (Data[WindowValue - 1] == 0)
+        sprintf(LCDMessage, "Enter n:    n=%d T =     K      C", WindowValue);
+    else
+        sprintf(LCDMessage, "Enter n:    n=%d T = %d K %c%c.%c C", WindowValue, Kelvin, CelsiusChar[0], CelsiusChar[1], CelsiusChar[2]);
+    LCDMessage[30] = 0xDF;
 }
 
 void ADCToTemp() {
-
+    Celsius = ((AveragedTemp)/3100)*100;
 }
 
 void TempConversion() {
+    Kelvin = 273 + Celsius;
+    CelsiusInteger = (int) (Celsius*10);
+    sprintf(CelsiusChar,"%d", CelsiusInteger);
+    if (CelsiusChar[1] == 0) {
+        CelsiusChar[1] = CelsiusChar[0];
+        CelsiusChar[0] = '0';
+    }
+    if (CelsiusChar[2] == 0) {
+        CelsiusChar[2] = CelsiusChar[1];
+        CelsiusChar[1] = '0';
+    }
 
 }
 
@@ -336,23 +353,21 @@ void TempConversion() {
 //-- Interrupt Service Routines -----------------------------------------------------------
 #pragma vector = EUSCI_B1_VECTOR
 __interrupt void EUSCI_B1_I2C_ISR(void) {
-    switch (TransmitMode) {
-        case 0:
-            UCB1TXBUF = LCDMessage[LCDPointer];
+    if (TransmitToLED) {
+        if (LCDPointer == 0) {
             LCDPointer++;
-            if (LCDPointer == 32) {
-                LCDPointer = 0;
-            }
-            break;
-        case 1:
-            UCB1TXBUF = LastButton;
-            TransmitMode--;
-        case 2:
             LevelFlag = AveragedTemp > TempThreshold ? true : false;
             UCB1TXBUF = LevelFlag;
-            TransmitMode--;
-        default:
-            TransmitMode = 0;
+        } else {
+            UCB1TXBUF = LastButton;
+        }
+
+    } else {
+        UCB1TXBUF = LCDMessage[LCDPointer];
+        LCDPointer++;
+        if (LCDPointer == 32) {
+            LCDPointer = 0;
+        }
     }
 }
 

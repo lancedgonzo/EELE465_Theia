@@ -46,7 +46,7 @@
 
 -----------------------------------------------------------------------------------------------------------------------*/
 
-#include <stdio.h>
+
 #include <stdint.h>
 #include "msp430fr2355.h"
 #include <driverlib.h>
@@ -75,8 +75,9 @@ void TransmitLCD();
 //Vairable Declarations-----------------------------------------------------
 uint8_t State = 0; // 0 - wait for key, 1-3 - correct button pressed for password,
 
-bool TransmitToLED = false;
+uint8_t TransmitMode = 0;
 bool TimerFlag = false;
+bool LEDModeD = false; // If LED Mode is set to D
 bool LevelFlag = false; // If ADC was last under level
  uint8_t j = 0;
 
@@ -86,7 +87,7 @@ bool CheckFlag = false;
 
 // LCD Output
 volatile bool TransmitToLCD = true;
-char LCDMessage[32] = "12345678901234567890123456789012";
+volatile char LCDMessage[32] = "12345678901234567890123456789012";
 volatile uint8_t LCDPointer = 0;
 volatile uint8_t LCDCounter = 0;
 
@@ -97,8 +98,6 @@ volatile uint8_t DataPointer = 0;
 volatile uint8_t WindowValue = 3;
 float AveragedTemp = 0;
 volatile float Celsius;
-volatile int Celsius_int;
-volatile char Ce[3];
 volatile int Kelvin;
 
 
@@ -134,14 +133,16 @@ int main(void) {
 
     while(1) {
         if (CheckFlag) {
+            LEDModeD = false;
             CheckButton();
             TransmitButton();
             continue;
         }
-        if (AveragedTemp != 0) {
+        if (LEDModeD && AveragedTemp != 0) {
 
             if ((!LevelFlag && (AveragedTemp > TempThreshold)) || (LevelFlag && (AveragedTemp <= TempThreshold))) {
-                TransmitLED();
+                TransmitMode++;
+                TransmitButton();
             }
 
         }
@@ -171,8 +172,8 @@ int main(void) {
             default:
                 break;
         }
-    }
 
+    }
 }
 
 void Init_I2C() {
@@ -234,17 +235,15 @@ void ADCAverage() {
     }
     AveragedTemp = AveragedTemp / (float) WindowValue;
 }
-
 void ADCDataReset() {
-//    ADCCTL0 &= ~(ADCENC | ADCSC);                           // Sampling and conversion start
+    ADCCTL0 &= ~(ADCENC | ADCSC);                           // Sampling and conversion start
     DataPointer = 0;
     ADCResult = 0;
     AveragedTemp = 0;
     LCDPointer = 0;
-    LCDCounter = 0;
 //    Celsius = 0;
     Kelvin = 0;
-    State=0;
+    State=2;
     TB0R = 0;
     Data[0]=0;
     Data[1]=0;
@@ -268,17 +267,24 @@ void TransmitButton() {
     switch(LastButton) {
         case '0':
             break;
+        case 'D':
+            LEDModeD = true;
         case '*':
         case 'A':
         case 'B':
         case 'C':
-        case 'D':
-            TransmitLED();
+            TransmitMode++;
+            UCB1TBCNT = TransmitMode;
+            UCB1I2CSA = LED_Address;
+            UCB1CTLW0 |= UCTR;
+            UCB1CTLW0 |= UCTXSTT;
             break;
         case '#':
             ADCDataReset();
             LCDFormat();
             TransmitLCD();
+            __delay_cycles(5000);
+            LCDCounter = 0;
             break;
         case '1':
         case '2':
@@ -289,10 +295,16 @@ void TransmitButton() {
         case '7':
         case '8':
         case '9':
+//            TransmitMode++;
+            while (LCDPointer != 0) {}
             ADCDataReset();
-            WindowValue = LastButton - 48;
             LCDFormat();
             TransmitLCD();
+            __delay_cycles(5000);
+            WindowValue = LastButton - 48;
+            LCDCounter = 0;
+//            LCDFormat();
+ //           TransmitLCD();
             break;
         default:
             break;
@@ -300,19 +312,7 @@ void TransmitButton() {
 
 }
 
-void TransmitLED() {
-    TransmitToLED = true;
-    LCDPointer = 1;
-    UCB1TBCNT = 2;
-    UCB1I2CSA = LED_Address; // Set the slave address in the module equal to the slave address
-    UCB1CTLW0 |= UCTR; // Put into transmit mode
-    UCB1CTLW0 |= UCTXSTT; // Generate the start condition
-    while (LCDPointer != 0) {}
-}
-
 void TransmitLCD() {
-    while (LCDPointer != 0) {}
-    TransmitToLED = false;
     LCDPointer = 0;
     UCB1TBCNT = 32;
     UCB1I2CSA = LCD_Address; // Set the slave address in the module equal to the slave address
@@ -321,27 +321,14 @@ void TransmitLCD() {
 }
 
 void LCDFormat() {
-    // clear LCDmessage[32]
-
-    ADCToTemp();
-    TempConversion();
-    if (Data[0] == 0)
-        sprintf(LCDMessage, "Enter n:        T =     K      C");
-    else
-        sprintf(LCDMessage, "Enter n:        T = %d K %c%c.%c C", Kelvin, Ce[0], Ce[1], Ce[2]);
-
 
 }
 
 void ADCToTemp() {
-    Celsius = ((AveragedTemp)/3100)*100;
-    //find a way to make Clesius = averagetemp
+
 }
 
 void TempConversion() {
-    Kelvin = Celsius + 273;
-    Celsius_int = Celsius*10;
-    sprintf(Ce,"%d", Celsius_int);
 
 }
 
@@ -349,21 +336,23 @@ void TempConversion() {
 //-- Interrupt Service Routines -----------------------------------------------------------
 #pragma vector = EUSCI_B1_VECTOR
 __interrupt void EUSCI_B1_I2C_ISR(void) {
-    if (TransmitToLED) {
-        if (LCDPointer == 0) {
+    switch (TransmitMode) {
+        case 0:
+            UCB1TXBUF = LCDMessage[LCDPointer];
             LCDPointer++;
+            if (LCDPointer == 32) {
+                LCDPointer = 0;
+            }
+            break;
+        case 1:
+            UCB1TXBUF = LastButton;
+            TransmitMode--;
+        case 2:
             LevelFlag = AveragedTemp > TempThreshold ? true : false;
             UCB1TXBUF = LevelFlag;
-        } else {
-            UCB1TXBUF = LastButton;
-        }
-
-    } else {
-        UCB1TXBUF = LCDMessage[LCDPointer];
-        LCDPointer++;
-        if (LCDPointer == 32) {
-            LCDPointer = 0;
-        }
+            TransmitMode--;
+        default:
+            TransmitMode = 0;
     }
 }
 

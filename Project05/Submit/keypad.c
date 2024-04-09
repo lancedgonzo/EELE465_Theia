@@ -24,9 +24,9 @@ void Init_Keypad() {
 void CheckButton() {
     CheckCol();
     CheckRow();
-    KeyToChar();
+    ButtonResponse();
     SwitchDebounce();
-    KeyPressedFlag = false;
+    CheckFlag = false;
 }//--END CheckButton-----------------------------------------------------------------------------------
 
 //-ColumnInput: Sets row pins as OUTPUT---------------------------------------------------------------------
@@ -103,8 +103,8 @@ void CheckRow() {
     Button = ((P4IN & (KEYPAD_ROW4(1))) == (KEYPAD_ROW4(1))) ? (Button | BIT7) : (Button & ~BIT7);
 }//--END CheckRow-----------------------------------------------------------------------------------
 
-//-KeyToChar: Updating last button to current button-----------------------------------------------
-void KeyToChar() {
+//-ButtonResponse: Updating last button to current button-----------------------------------------------
+void ButtonResponse() {
     // Update last button with identified button pressed
     switch(Button) {
         case KEY_0: LastButton = '0'; break;
@@ -124,7 +124,7 @@ void KeyToChar() {
         case KEY_C: LastButton = 'C'; break;
         case KEY_D: LastButton = 'D'; break;
     }
-}//--End KeyToChar
+}//--End ButtonResponse
 
 
 //-SwitchDebounce(): -------------------------------------------------------------------------
@@ -139,7 +139,7 @@ void SwitchDebounce(){
 #pragma vector = PORT3_VECTOR
 #pragma vector = PORT4_VECTOR
 __interrupt void ISR_Button_Pressed(void) {
-    KeyPressedFlag = true; // Tell system to check which key was pressed
+    CheckFlag = true; // Tell system to check which key was pressed
     GPIO_clearInterrupt(KEYPAD_ROW1(0), KEYPAD_ROW1(1));
     GPIO_clearInterrupt(KEYPAD_ROW2(0), KEYPAD_ROW2(1));
     GPIO_clearInterrupt(KEYPAD_ROW3(0), KEYPAD_ROW3(1));
