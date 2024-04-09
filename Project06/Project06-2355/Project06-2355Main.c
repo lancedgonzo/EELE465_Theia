@@ -90,7 +90,7 @@ uint8_t SecondaryState = 0b00000000;
     // 4: Setpoint enter vs Window Averaging enter
     // Maybe peltier next state bits?
 
-uint8_t TransmitState = 0b00000000; // 0 LCD 1 LED 2 RTC 3 ADC, pending? 4-8?
+uint8_t TransmitState = 0b00000000; // 0 LCD 1 LED 2 RTC 3 ADC, 4 pending LCD, 5 pending LED, 6 pending RTC 7 pending ADC
 
 
 // Keypad
@@ -169,7 +169,7 @@ int main(void) {
         }
         // LM92 State
         switch (0b00110000 & State) {
-            case 0:  break; // send message
+            case 0: TransmitState |= 0b10000000; State += 0b00010000;  break; // send message
             case 16:  break; // wait
             case 32:  break; // save and average
             case 48:  break; // wait
@@ -178,15 +178,14 @@ int main(void) {
         }
         // RTC State
         switch (0b11000000 & State) {
-            case 0:  break; // send message
+            case 0:   break; // send message
             case 64:  break; // wait
             case 128: break; // save time
             case 192: break; // wait
             default:
                 break;
         }
-
-
+        TransmitStart();
     }
 }
 
@@ -199,7 +198,6 @@ void ButtonResponse() {
 //    UCB1CTLW0 |= UCTXSTT; // Generate the start condition
 
     switch(LastButton) {
-            break;
         case '*':
         case 'A':
         case 'B':
@@ -207,7 +205,7 @@ void ButtonResponse() {
         case 'D':
             break;
         case '#':
-            ADCDataReset();
+            LocalADCDataReset();
             LCDFormat();
             TransmitLCD();
             break;
@@ -260,8 +258,9 @@ __interrupt void Timer_B_ISR(void){
         case 0:         // RTC
             State &= 0b00111111;
             break;
-        case 8:  break; // LCD
-
+        case 8:         // LCD
+            TransmitState |= 0b00010000;
+            break;
         case 14:  break; // Wait
         case 6:  break; // Wait
         default:

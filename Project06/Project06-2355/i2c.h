@@ -9,12 +9,17 @@
 
 
 void Init_I2C();
+void TransmitStart();
 void TransmitLCD();
 void TransmitLED();
 void TransmitRTC();
+void ReceiveRTC();
+void TransmitADC();
+void ReceiveADC();
 
-
-extern uint8_t TransmitState; // 0 LCD 1 LED 2 RTC 3 ADC, pending? 4-8?
+extern char LastButton;
+extern bool HeatCool;
+extern uint8_t TransmitState; // 0 LCD 1 LED 2 RTC 3 ADC, 4 pending LCD, 5 pending LED, 6 pending RTC 7 pending ADC
 
 // LCD Output
 void LCDFormat();

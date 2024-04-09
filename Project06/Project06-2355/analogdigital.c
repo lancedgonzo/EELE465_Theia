@@ -6,8 +6,11 @@
 
 uint16_t LocalADCResult = 0;
 uint16_t LocalADCData[10];
-uint16_t RemoteADCData[10];
 uint8_t LocalDataPointer = 0;
+
+uint16_t RemoteADCResult = 0;
+uint16_t RemoteADCData[10];
+uint8_t RemoteDataPointer = 0;
 
 float AveragedTemp = 0;
 
