@@ -24,7 +24,7 @@ void Init_Keypad() {
 void CheckButton() {
     CheckCol();
     CheckRow();
-    ButtonResponse();
+    KeyToChar();
     SwitchDebounce();
     KeyPressedFlag = false;
 }//--END CheckButton-----------------------------------------------------------------------------------
@@ -103,8 +103,8 @@ void CheckRow() {
     Button = ((P4IN & (KEYPAD_ROW4(1))) == (KEYPAD_ROW4(1))) ? (Button | BIT7) : (Button & ~BIT7);
 }//--END CheckRow-----------------------------------------------------------------------------------
 
-//-ButtonResponse: Updating last button to current button-----------------------------------------------
-void ButtonResponse() {
+//-KeyToChar: Updating last button to current button-----------------------------------------------
+void KeyToChar() {
     // Update last button with identified button pressed
     switch(Button) {
         case KEY_0: LastButton = '0'; break;
@@ -124,7 +124,7 @@ void ButtonResponse() {
         case KEY_C: LastButton = 'C'; break;
         case KEY_D: LastButton = 'D'; break;
     }
-}//--End ButtonResponse
+}//--End KeyToChar
 
 
 //-SwitchDebounce(): -------------------------------------------------------------------------

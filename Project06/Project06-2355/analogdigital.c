@@ -4,6 +4,14 @@
 
 #include "driverlib.h"
 
+uint16_t LocalADCResult = 0;
+uint16_t LocalADCData[10];
+uint8_t LocalDataPointer = 0;
+float AveragedTemp = 0;
+
+
+uint8_t j = 0;
+
 
 void Init_ADC() {
     // Configure ADC A1 pin
@@ -27,38 +35,38 @@ void ADCStart() {
 }
 
 void ADCDataReset() {
-    DataPointer = 0;
-    ADCResult = 0;
-    ADCData[0]=0;
-    ADCData[1]=0;
-    ADCData[2]=0;
-    ADCData[3]=0;
-    ADCData[4]=0;
-    ADCData[5]=0;
-    ADCData[6]=0;
-    ADCData[7]=0;
-    ADCData[8]=0;
-    ADCData[9]=0;
+    LocalDataPointer = 0;
+    LocalADCResult = 0;
+    LocalADCData[0]=0;
+    LocalADCData[1]=0;
+    LocalADCData[2]=0;
+    LocalADCData[3]=0;
+    LocalADCData[4]=0;
+    LocalADCData[5]=0;
+    LocalADCData[6]=0;
+    LocalADCData[7]=0;
+    LocalADCData[8]=0;
+    LocalADCData[9]=0;
 }
 
 void ADCSave() {
-    ADCData[DataPointer] = ADCResult;
-    DataPointer++;
-    if (DataPointer == WindowValue) {
-        DataPointer = 0;
+    LocalADCData[LocalDataPointer] = LocalADCResult;
+    LocalDataPointer++;
+    if (LocalDataPointer == AveragingWindowValue) {
+        LocalDataPointer = 0;
     }
 }
 
 void ADCAverage() {
     AveragedTemp = 0;
-    for (j = 0; j < WindowValue; j++) {
-        if (ADCData[j] == 0) {
+    for (j = 0; j < AveragingWindowValue; j++) {
+        if (LocalADCData[j] == 0) {
             AveragedTemp = 0;
             return;
         }
-        AveragedTemp += (float) ADCData[j];
+        AveragedTemp += (float) LocalADCData[j];
     }
-    AveragedTemp = AveragedTemp / (float) WindowValue;
+    AveragedTemp = AveragedTemp / (float) AveragingWindowValue;
 }
 
 // ADC interrupt service routine
@@ -79,7 +87,7 @@ __interrupt void ADC_ISR(void) {
         case ADCIV_ADCINIFG:
             break;
         case ADCIV_ADCIFG:
-            ADCResult = ADCMEM0;
+            LocalADCResult = ADCMEM0;
             __bic_SR_register_on_exit(LPM0_bits);            // Clear CPUOFF bit from LPM0
             State++;
             break;

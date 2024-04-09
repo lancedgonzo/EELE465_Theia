@@ -5,12 +5,7 @@
 #include "stdbool.h"
 
 
-uint16_t ADCResult = 0;
-uint16_t ADCData[10];
-uint8_t DataPointer = 0;
-uint8_t WindowValue = 3;
-float AveragedTemp = 0;
-uint8_t j = 0;
+extern uint8_t AveragingWindowValue;
 
 extern uint8_t State;
 

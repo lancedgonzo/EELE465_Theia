@@ -40,7 +40,7 @@ void CheckCol(void);
 void RowInput(void);
 void CheckRow(void);
 void CheckButton(void);
-void ButtonResponse(void);
+void KeyToChar(void);
 void SwitchDebounce(void);
 //--------------------------------------------------------------------------
 

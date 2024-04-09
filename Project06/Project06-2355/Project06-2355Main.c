@@ -70,28 +70,36 @@ void TempConversion();
 void TransmitLCD();
 
 //Vairable Declarations-----------------------------------------------------
-uint8_t State = 0; // 0 - wait for key, 1-3 - correct button pressed for password,
-uint8_t TransmitState = 0b00000000; // 0-4 screen 5-6 LED
 
+// State Variables
+uint8_t State = 0b00000000; // Peltier, Local and remote ADCs, RTC, Timer
+    // 0-1: 0 Off, 1 Heat, 2 Cool, 3 Maintain
+    // 2-3: 0 Start ADC, 1 Wait for Sample, 2 Save+Avg, 3 Wait for timer
+    // 4-5: 0 Request Temp, 1 Wait for Response, 2 Save+Avg, 3 Wait for timer
+    // 6: 0 Request Time, 1 Wait for Response
+    // 7: Timer toggle 0 ADCs 1 RTC
 
-uint8_t LCDCounter = 0;
-bool TimerFlag = false;
-bool LEDModeD = false; // If LED Mode is set to D
-bool LevelFlag = false; // If ADC was last under level
+uint8_t TransmitState = 0b00000000; // 0 LCD 1 LED 2 RTC 3 ADC, pending? 4-8?
+
 
 // Keypad
 void ButtonResponse();
-
 char LastButton = 0;
 bool KeyPressedFlag = false;
 
+// Peltier
+void PeltierOff();
+void PeltierCool();
+void PeltierHeat();
+void PeltierMaintain();
 
 // LCD Output
-bool TransmitToLCD = true;
+void LCDFormat();
 char LCDMessage[32] = "12345678901234567890123456789012";
 uint8_t LCDPointer = 0;
 
 // Temp
+uint8_t AveragingWindowValue = 3;
 extern bool CheckTempThreshold();
 
 //-----------------------------------------------------------------------
@@ -112,12 +120,12 @@ int main(void) {
     // to activate previously configured port settings
     PM5CTL0 &= ~LOCKLPM5;
 
-    TimerFlag = true;
     TB0CTL |= TBSSEL__ACLK + MC__UP + ID__2;
     TB0CCR0 = 5460;
     TB0R = 0;
     TB0CCTL0 |= CCIE;
     TB0CCTL0 &= ~CCIFG;
+
 
     __enable_interrupt();
 
@@ -130,19 +138,41 @@ int main(void) {
         if (CheckTempThreshold()) {
             continue;
         }
-
-        switch (State) {
-            case 0:
-                State++;
-                break;
-            case 2:
-                ADCSave();
-                ADCAverage();
-                State++;
-                break;
+        // Peltier Device State
+        switch (0b00000011 & State) {
+            case 0: PeltierOff(); break;
+            case 1: PeltierHeat(); break;
+            case 2: PeltierCool(); break;
+            case 3: PeltierMaintain(); break;
             default:
                 break;
         }
+        // MSP ADC State
+        switch (0b00001100 & State) {
+            case 0:  break;
+            case 4:  break;
+            case 8:  break;
+            case 12: break;
+            default:
+                break;
+        }
+        // LM92 State
+        switch (0b00110000 & State) {
+            case 0:  break;
+            case 16:  break;
+            case 32:  break;
+            case 48:  break;
+            default:
+                break;
+        }
+        // RTC State
+        switch (0b01000000 & State) {
+            case 0:  break;
+            case 64:  break;
+            default:
+                break;
+        }
+
 
     }
 }
@@ -186,16 +216,10 @@ void ButtonResponse() {
         case '0':
             break;
         case 'D':
-            LEDModeD = true;
         case '*':
         case 'A':
         case 'B':
         case 'C':
-            TransmitMode++;
-            UCB1TBCNT = TransmitMode;
-            UCB1I2CSA = LED_Address;
-            UCB1CTLW0 |= UCTR;
-            UCB1CTLW0 |= UCTXSTT;
             break;
         case '#':
             ADCDataReset();
@@ -211,9 +235,7 @@ void ButtonResponse() {
         case '7':
         case '8':
         case '9':
-            TransmitMode++;
-            WindowValue = LastButton - 48;
-            ADCDataReset();
+            AveragingWindowValue = LastButton - 48;
             break;
         default:
             break;
@@ -229,30 +251,29 @@ void TransmitLCD() {
     UCB1CTLW0 |= UCTXSTT; // Generate the start condition
 }
 
-void LCDFormat() {
+bool CheckTempThreshold() { return false;}
 
-}
+void PeltierOff() {}
+void PeltierCool() {}
+void PeltierHeat() {}
+void PeltierMaintain() {}
 
-void ADCToTemp() {
-
-}
-
-void TempConversion() {
-
-}
-
+void LCDFormat() {}
 
 //-- Interrupt Service Routines -----------------------------------------------------------
 #pragma vector = EUSCI_B1_VECTOR
 __interrupt void EUSCI_B1_I2C_ISR(void) {
-    switch (TransmitMode) {
-    }
 }
 
 //-ISR Timer B---------------------------------------------------------------------------
 #pragma vector=TIMER0_B0_VECTOR
 __interrupt void Timer_B_ISR(void){
-    State = 0;
+    switch (0b01000000 & State) {
+        case 0:  break;
+        case 128:  break;
+        default:
+            break;
+    }
 
     // Clear interrupt flag
     TB0CCTL0 &= ~CCIFG;
