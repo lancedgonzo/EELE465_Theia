@@ -272,12 +272,15 @@ __interrupt void Timer_B_ISR(void){
         case 8:         // LCD
             TransmitState |= StartTxLCD;
             break;
-        case 14:  break; // Wait
+        case 14: break; // Wait
         case 6:  break; // Wait
         default:
             break;
     }
-    SecondaryState += 2;
+    if ((0b00001110 & SecondaryState) != 14)
+        SecondaryState += 2;
+    else
+        SecondaryState -= 0b00001110;
     // Clear interrupt flag
     TB0CCTL0 &= ~CCIFG;
 }//-- End Timer_B_ISR ------------------------------------------------------------------
