@@ -221,11 +221,7 @@ void PatternSetpointCool() {
 void PatternOff() {
     switch(PatternOffCounter) {
             case 0: LED_Out = 0b10101010; break;
-            case 1: LED_Out = 0b01010101; break;
-            case 2: LED_Out = 0b10101010; break;
-            case 3: LED_Out = 0b01010101; break;
-            case 4: LED_Out = 0b10101010; break;
-            case 5: LED_Out = 0b00000000; PatternOffCounter = -1; break;
+            case 1: LED_Out = 0b01010101; PatternOffCounter = -1; break;
     }
     PatternOffCounter++;
 }
