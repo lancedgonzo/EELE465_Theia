@@ -277,7 +277,7 @@ __interrupt void Timer_B_ISR(void){
         default:
             break;
     }
-
+    SecondaryState += 2;
     // Clear interrupt flag
     TB0CCTL0 &= ~CCIFG;
 }//-- End Timer_B_ISR ------------------------------------------------------------------

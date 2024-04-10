@@ -1,8 +1,24 @@
 #include <i2c.h>
 
+#include <stdio.h>
 #include "driverlib.h"
 
 uint8_t TransmitCounter = 0;
+// LCD Output
+void LCDFormat();
+char LCDMessage[32];
+uint8_t LCDPointer;
+
+//Plant temp LM92
+volatile float RCelsius;
+volatile int RCelsius_int;
+char RCe[3];
+
+//Area temp LM19
+volatile float LCelsius;
+volatile int LCelsius_int;
+char LCe[3];
+
 
 void Init_I2C() {
 
@@ -45,6 +61,8 @@ void TransmitStart() {
 }
 
 void TransmitLCD() {
+    LCDFormat();
+
     TransmitState &= ~StartTxLCD;
     TransmitState |= TxLCD;
     TransmitCounter = 32;
@@ -81,12 +99,51 @@ void TransmitADC() {
 void ReceiveADC() {}
 
 
-void LCDFormat() {}
+//temp calibration
+void ADCToTemp() {
+    LCelsius = ((AveragedTemp)/3100)*100;
+    LCelsius_int = LCelsius*10;
+    sprintf(LCe,"%d", LCelsius_int);
+    if (LCe[1] == 0) {
+        LCe[1] = LCe[0];
+        LCe[0] = '0';
+    }
+    if (LCe[2] == 0) {
+        LCe[2] = LCe[1];
+        LCe[1] = '0';
+    }
+
+    RCelsius = 35.4; // a place holder until the ADC for the plant is made;
+    RCelsius_int = RCelsius*10;
+    sprintf(RCe,"%d", RCelsius_int);
+    if (RCe[1] == 0) {
+        RCe[1] = RCe[0];
+        RCe[0] = '0';
+    }
+    if (RCe[2] == 0) {
+        RCe[2] = RCe[1];
+        RCe[1] = '0';
+    }
+
+}
+
+void LCDFormat() {
+    // clear LCDmessage[32]
+
+    ADCToTemp();
+    sprintf(LCDMessage, "Res=N   A:%c%c.%c CM:   s  P:%c%c.%c C", 'A' + (State & 0b00000011), LCe[0], LCe[1], LCe[2], RCe[0], RCe[1], RCe[2]);
+
+
+}
+
 
 #pragma vector = EUSCI_B1_VECTOR
 __interrupt void EUSCI_B1_I2C_ISR(void) {
     switch(TransmitState & ~PendingBits) {
         case 1: // LCD
+            UCB1TXBUF = LCDMessage[32 - TransmitCounter];
+            TransmitCounter--;
+            break;
         case 2: // LED
             if (TransmitCounter == 2) {
                 UCB1TXBUF = HeatCool;
