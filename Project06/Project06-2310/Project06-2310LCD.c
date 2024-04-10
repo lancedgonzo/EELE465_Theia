@@ -1,6 +1,6 @@
 /*----------------------------------------------------------------------------------------------------------------------
     EELE465
-    Written by: Lance Gonzalez, Grant Kirkland
+    Written by: Lance Gonzalez, Grant Kirkland, Ken Vincent
     Working:
     Project 04 - Mar 02 2024
 

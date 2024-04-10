@@ -60,17 +60,20 @@
 #define P6 GPIO_PIN6
 #define P7 GPIO_PIN7
 
-void PatternAUpdate();
-void PatternBUpdate();
-void PatternCUpdate();
-void PatternDUpdate();
+void PatternOff();
+void PatternHeat();
+void PatternCool();
+void PatternSetpointHeat();
+void PatternSetpointCool();
 void UpdateLED();
 
 volatile uint8_t LED_Out = 0;
-volatile uint8_t PatternBCounter = 0;
-volatile uint8_t PatternCCounter = 0;
-volatile uint8_t PatternDCounter = 0;
-volatile uint8_t state = 0;
+volatile int8_t PatternHeatCounter = 0;
+volatile int8_t PatternCoolCounter = 0;
+volatile int8_t PatternOffCounter = 0;
+volatile int8_t PatternsetCoolCounter = 0;
+volatile int8_t PatternsetHeatCounter = 0;
+volatile int8_t state = 0;
 volatile bool TimerFlag = false;
 volatile bool Timer2Flag = false;
 volatile bool HeatCool = false;
@@ -172,19 +175,59 @@ void PatternHeat() {
 
 void PatternCool() {
     switch(PatternCoolCounter) {
+        case 0: LED_Out = 0b10000000; break;
+        case 1: LED_Out = 0b11000000; break;
+        case 2: LED_Out = 0b11100000; break;
+        case 3: LED_Out = 0b11110000; break;
+        case 4: LED_Out = 0b11111000; break;
+        case 5: LED_Out = 0b11111100; break;
+        case 6: LED_Out = 0b11111110; break;
+        case 7: LED_Out = 0b11111111; break;
+        case 8: LED_Out = 0b00000000; PatternCoolCounter = -1; break;
     }
+    PatternCoolCounter++;
 }
 
 void PatternSetpointHeat() {
-
+    switch(PatternsetHeatCounter) {
+            case 0: LED_Out = 0b11111111; break;
+            case 1: LED_Out = 0b11100111; break;
+            case 2: LED_Out = 0b11000011; break;
+            case 3: LED_Out = 0b10000001; break;
+            case 4: LED_Out = 0b00000000; break;
+            case 5: LED_Out = 0b10000001; break;
+            case 6: LED_Out = 0b11000011; break;
+            case 7: LED_Out = 0b11100111; break;
+            case 8: LED_Out = 0b00000000; PatternsetHeatCounter = -1; break;
+    }
+    PatternsetHeatCounter++;
 }
 
 void PatternSetpointCool() {
-
+    switch(PatternsetCoolCounter) {
+            case 0: LED_Out = 0b11111111; break;
+            case 1: LED_Out = 0b01111110; break;
+            case 2: LED_Out = 0b00111100; break;
+            case 3: LED_Out = 0b00011000; break;
+            case 4: LED_Out = 0b00111100; break;
+            case 5: LED_Out = 0b01111110; break;
+            case 6: LED_Out = 0b00111100; break;
+            case 7: LED_Out = 0b11111111; break;
+            case 8: LED_Out = 0b00000000; PatternsetCoolCounter = -1; break;
+    }
+    PatternsetCoolCounter++;
 }
 
 void PatternOff() {
-
+    switch(PatternOffCounter) {
+            case 0: LED_Out = 0b10101010; break;
+            case 1: LED_Out = 0b01010101; break;
+            case 2: LED_Out = 0b10101010; break;
+            case 3: LED_Out = 0b01010101; break;
+            case 4: LED_Out = 0b10101010; break;
+            case 5: LED_Out = 0b00000000; PatternOffCounter = -1; break;
+    }
+    PatternOffCounter++;
 }
 
 //-ISR Timer B---------------------------------------------------------------------------
