@@ -18,6 +18,9 @@ void LocalADCStart();
 void LocalADCDataReset();
 void LocalADCSave();
 void LocalADCAverage();
+void RemoteADCDataReset();
+void RemoteADCSave();
+void RemoteADCAverage();
 bool CheckTempThreshold();
 
 
