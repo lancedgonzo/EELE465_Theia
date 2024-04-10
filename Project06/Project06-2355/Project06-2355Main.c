@@ -144,48 +144,49 @@ int main(void) {
 
     while(1) {
         if (SecondaryState & KeyPressedFlag) {
+            CheckButton();
             ButtonResponse();
             continue;
         }
-        if (CheckTempThreshold()) {
-            continue;
-        }
-        // Peltier Device State
-        switch (0b00000011 & State) {
-            case 0: PeltierHeat(); break; // off
-            case 1: PeltierCool(); break; // heat
-            case 2: PeltierMaintain(); break; // cool
-            case 3: PeltierOff(); break; // maintain
-            default:
-                break;
-        }
-        // MSP ADC State
-        switch (0b00001100 & State) {
-            case 0: LocalADCStart(); State += 0b00000100;  break; // Start sample
-            case 4:  break; // wait
-            case 8:  break; // save and average
-            case 12: break; // wait
-            default:
-                break;
-        }
-        // LM92 State
-        switch (0b00110000 & State) {
-            case 0: TransmitState |= StartTxADC; State += 0b00010000;  break; // send message
-            case 16:  break; // wait
-            case 32:  break; // save and average
-            case 48:  break; // wait
-            default:
-                break;
-        }
-        // RTC State
-        switch (0b11000000 & State) {
-            case 0:   break; // send message
-            case 64:  break; // wait
-            case 128: break; // save time
-            case 192: break; // wait
-            default:
-                break;
-        }
+//        if (CheckTempThreshold()) {
+//            continue;
+//        }
+//        // Peltier Device State
+//        switch (0b00000011 & State) {
+//            case 0: PeltierHeat(); break; // off
+//            case 1: PeltierCool(); break; // heat
+//            case 2: PeltierMaintain(); break; // cool
+//            case 3: PeltierOff(); break; // maintain
+//            default:
+//                break;
+//        }
+//        // MSP ADC State
+//        switch (0b00001100 & State) {
+//            case 0: LocalADCStart(); State += 0b00000100;  break; // Start sample
+//            case 4:  break; // wait
+//            case 8:  break; // save and average
+//            case 12: break; // wait
+//            default:
+//                break;
+//        }
+//        // LM92 State
+//        switch (0b00110000 & State) {
+//            case 0: TransmitState |= StartTxADC; State += 0b00010000;  break; // send message
+//            case 16:  break; // wait
+//            case 32:  break; // save and average
+//            case 48:  break; // wait
+//            default:
+//                break;
+//        }
+//        // RTC State
+//        switch (0b11000000 & State) {
+//            case 0:   break; // send message
+//            case 64:  break; // wait
+//            case 128: break; // save time
+//            case 192: break; // wait
+//            default:
+//                break;
+//        }
         TransmitStart();
     }
 }
@@ -259,14 +260,14 @@ __interrupt void Timer_B_ISR(void){
     switch (0b00001110 & SecondaryState) {
         case 10:        // Local ADC
         case 2:         // Local ADC
-            State &= 0b11110011;
+            //State &= 0b11110011;
             break;
         case 12:        // External ADC
         case 4:         // External ADC
-            State &= 0b11001111;
+            //State &= 0b11001111;
             break;
         case 0:         // RTC
-            State &= 0b00111111;
+            //State &= 0b00111111;
             break;
         case 8:         // LCD
             TransmitState |= StartTxLCD;
