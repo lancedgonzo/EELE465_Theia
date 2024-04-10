@@ -257,5 +257,8 @@ __interrupt void EUSCI_B0_I2C_ISR(void) {
         case 'D':
             state = 0;
             break;
+        case '#':
+            state = 0;
+            break;
     }
 }
