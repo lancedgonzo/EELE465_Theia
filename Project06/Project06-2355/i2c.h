@@ -26,6 +26,7 @@ extern uint8_t State;
 extern uint8_t LocalAveragedData;
 extern uint8_t RemoteAveragedData;
 extern uint8_t ADCRxData[2];
+extern uint8_t AveragingWindowValue;
 
 // LCD Output
 void LCDFormat();
