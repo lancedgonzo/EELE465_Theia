@@ -121,6 +121,10 @@ int main(void) {
     GPIO_setAsOutputPin(1, 0x04);
     P1OUT |= BIT3;
 
+    //Peltier INIT
+    P2DIR |= (PELTIER_COOL | PELTIER_HEAT);
+    P2OUT |= (PELTIER_COOL | PELTIER_HEAT); 
+
     // Disable the GPIO power-on default high-impedance mode
     // to activate previously configured port settings
     PM5CTL0 &= ~LOCKLPM5;
@@ -268,22 +272,22 @@ void delay_ms_(unsigned int ms){
 
 //Turns Off P2.0 & P2.1 on 2355, this turns switches off
 void PeltierOff() {
-    P2OUT &= ~PELTIER_HEAT; 
-    P2OUT &= ~PELTIER_COOL;
+    P2OUT |= PELTIER_HEAT; 
+    P2OUT |= PELTIER_COOL;
 }
 
 //Turns on P2.1 after safety delay, this turns switch connected to heating on
 void PeltierCool() {
-    P2OUT &= ~PELTIER_HEAT; 
+    P2OUT |= PELTIER_HEAT; 
     delay_ms_(50);
-    P2OUT |= PELTIER_COOL; 
+    P2OUT &= ~PELTIER_COOL; 
 }
 
 //Turns on P2.0 after safety delay, this turns switch connected to cooling on
 void PeltierHeat() {
-    P2OUT &= ~PELTIER_COOL; 
+    P2OUT |= PELTIER_COOL; 
     delay_ms_(50);
-    P2OUT |= PELTIER_HEAT; 
+    P2OUT &= ~PELTIER_HEAT; 
 }
 
 //Will compare the current temperature to the set temperature, and turn on the appropriate switch
