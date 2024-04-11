@@ -95,6 +95,10 @@ uint8_t SecondaryState = SecondaryStateInit;
 
 uint8_t TransmitState = TransmitInit; // 0 LCD 1 LED 2 RTC 3 ADC, 4 pending LCD, 5 pending LED, 6 pending RTC 7 pending ADC
 
+#define TempThreshold 1000.0
+#define PELTIER_HEAT BIT1
+#define PELTIER_COOL BIT0
+
 
 // Keypad
 void ButtonResponse();
@@ -131,6 +135,11 @@ int main(void) {
     GPIO_setAsOutputPin(1, 0x00);
     P1OUT &= ~BIT0;
 
+
+    //Peltier INIT
+    P6DIR |= (PELTIER_COOL | PELTIER_HEAT);
+    P6OUT |= (PELTIER_COOL | PELTIER_HEAT);
+
     // Disable the GPIO power-on default high-impedance mode
     // to activate previously configured port settings
     PM5CTL0 &= ~LOCKLPM5;
@@ -152,15 +161,15 @@ int main(void) {
             ButtonResponse();
             continue;
         }
-//        // Peltier Device State
-//        switch (PeltierBits & State) {
-//            case 0: PeltierHeat(); break; // off
-//            case 1: PeltierCool(); break; // heat
-//            case 2: PeltierMaintain(); break; // cool
-//            case 3: PeltierOff(); break; // maintain
-//            default:
-//                break;
-//        }
+        // Peltier Device State
+        switch (0b00000011 & State) {
+            case 0: PeltierHeat(); break;
+            case 1: PeltierCool(); break;
+            case 2: PeltierMaintain(); break;
+            case 3: PeltierOff(); break;
+            default:
+                break;
+        }
         // MSP ADC State
 //        switch (LocalADCBits & State) {
 //            case 0: LocalADCStart(); State += LocalADCIncrement;  break; // Start sample
@@ -182,9 +191,9 @@ int main(void) {
         // RTC State
         switch (RTCBits & State) {
             case 0: TransmitState |= StartTxRTC; State += RTCIncrement;  break; // send message
-            //case 64:  break; // wait
-            case 128: State += RTCIncrement; break; // save time
-            //case 192: break; // wait
+//            //case 64:  break; // wait
+//            case 128: State += RTCIncrement; break; // save time
+//            //case 192: break; // wait
             default:
                 break;
         }
@@ -248,10 +257,51 @@ void ButtonResponse() {
 
 }
 
-void PeltierOff() {}
-void PeltierCool() {}
-void PeltierHeat() {}
-void PeltierMaintain() {}
+//Delay tuned fairly close to 1ms * (passed int) for timing purposes.
+void delay_ms_(unsigned int ms){
+    uint8_t i;
+    for(i=0; i<= ms; i++){
+        __delay_cycles(1050);
+    }
+}
+
+
+//Turns Off P2.0 & P2.1 on 2355, this turns switches off
+void PeltierOff() {
+    P6OUT |= PELTIER_HEAT;
+    P6OUT |= PELTIER_COOL;
+}
+
+//Turns on P2.1 after safety delay, this turns switch connected to heating on
+void PeltierCool() {
+    P6OUT |= PELTIER_HEAT;
+    delay_ms_(50);
+    P6OUT &= ~PELTIER_COOL;
+}
+
+//Turns on P2.0 after safety delay, this turns switch connected to cooling on
+void PeltierHeat() {
+    P6OUT |= PELTIER_COOL;
+    delay_ms_(50);
+    P6OUT &= ~PELTIER_HEAT;
+}
+
+//Will compare the current temperature to the set temperature, and turn on the appropriate switch
+void PeltierMaintain() {
+//    //If the current temperature is less than the set temperature, turn on the heating switch.
+//    if(AveragedTemp <= /*SELECTED temp reference (either LM19 or user select) - 1deg */){
+//        PeltierHeat();
+//    } else if (AveragedTemp >= /*SELECTED temp reference (either LM19 or user select) + 1deg */)
+//    {
+//        PeltierCool();
+//    } else {
+//        PeltierOff();
+//    }
+//
+//    //If the current temperature is greater than the set temperature, turn on the cooling switch.
+//    //If the current temperature is within 1 degree of the set temperature, turn off the switches.
+
+}
 
 
 //-- Interrupt Service Routines -----------------------------------------------------------
