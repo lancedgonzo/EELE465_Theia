@@ -198,6 +198,7 @@ __interrupt void EUSCI_B1_I2C_ISR(void) {
                 RTCRxData[1] = UCB1RXBUF;
                 State += RTCIncrement;
             }
+            TransmitCounter--;
             break;
 
         case 8: // ADC
