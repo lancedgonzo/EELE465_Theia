@@ -6,7 +6,7 @@
 #define LED_Address 0x013
 #define LCD_Address 0x046
 #define RTC_Address 0x024
-#define ADC_Address 0x035
+#define ADC_Address 0x048
 
 #define StartTxLCD 0b00010000
 #define StartTxLED 0b00100000

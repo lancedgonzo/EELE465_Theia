@@ -88,6 +88,7 @@ uint8_t SecondaryState = 0b00000000;
         // 750 External ADC
         // 875
     // 4: Setpoint enter vs Window Averaging enter
+    // 5:
     // Maybe peltier next state bits?
 
 uint8_t TransmitState = 0b00000000; // 0 LCD 1 LED 2 RTC 3 ADC, 4 pending LCD, 5 pending LED, 6 pending RTC 7 pending ADC
@@ -115,6 +116,7 @@ extern bool CheckTempThreshold();
 
 int main(void) {
     // Stop watchdog timer
+
     WDTCTL = WDTPW | WDTHOLD;
 
     // Initialization
@@ -133,8 +135,8 @@ int main(void) {
 
     // Timer configured for 1/8th of a second
     //  ** TODO **
-    TB0CTL |= TBSSEL__ACLK + MC__UP + ID__2;
-    TB0CCR0 = 5460;
+    TB0CTL |= TBSSEL__ACLK + MC__UP + ID__1;
+    TB0CCR0 = 4260;
     TB0R = 0;
     TB0CCTL0 |= CCIE;
     TB0CCTL0 &= ~CCIFG;
@@ -170,14 +172,14 @@ int main(void) {
 //                break;
 //        }
 //        // LM92 State
-//        switch (0b00110000 & State) {
-//            case 0: TransmitState |= StartTxADC; State += 0b00010000;  break; // send message
-//            case 16:  break; // wait
-//            case 32:  break; // save and average
-//            case 48:  break; // wait
-//            default:
-//                break;
-//        }
+        switch (0b00110000 & State) {
+            case 0: TransmitState |= StartTxADC; State += 0b00010000;  break; // send message
+            //case 16:  break; // wait
+            case 32:  break; // save and average
+            //case 48:  break; // wait
+            default:
+                break;
+        }
 //        // RTC State
 //        switch (0b11000000 & State) {
 //            case 0:   break; // send message
@@ -264,13 +266,13 @@ __interrupt void Timer_B_ISR(void){
             break;
         case 12:        // External ADC
         case 4:         // External ADC
-            //State &= 0b11001111;
+            State &= 0b11001111;
             break;
         case 0:         // RTC
             //State &= 0b00111111;
             break;
         case 8:         // LCD
-            TransmitState |= StartTxLCD;
+            //TransmitState |= StartTxLCD;
             break;
         case 14: break; // Wait
         case 6:  break; // Wait

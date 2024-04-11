@@ -19,6 +19,7 @@ volatile float LCelsius;
 volatile int LCelsius_int;
 char LCe[3];
 
+uint8_t ADCRxData[2] = {0, 0};
 
 void Init_I2C() {
 
@@ -55,7 +56,7 @@ void TransmitStart() {
         else if (TransmitState & StartTxRTC) // if RTC pending
             TransmitRTC();
         else if (TransmitState & StartTxADC) // if ADC Pending
-            TransmitADC();
+            /*TransmitADC();*/ReceiveADC();
 
     }
 }
@@ -94,9 +95,22 @@ void ReceiveRTC() {
 void TransmitADC() {
     TransmitState &= ~StartTxADC;
     TransmitState |= TxADC;
-
+    TransmitCounter = 1;
+    UCB1TBCNT = 1;
+    UCB1I2CSA = ADC_Address; // Set the slave address in the module equal to the slave address
+    UCB1CTLW0 |= UCTR; // Put into transmit mode
+    UCB1CTLW0 |= UCTXSTT; // Generate the start condition
 }
-void ReceiveADC() {}
+
+void ReceiveADC() {
+    TransmitState &= ~StartTxADC;
+    TransmitState |= TxADC;
+    TransmitCounter = 2;
+    UCB1TBCNT = 2;
+    UCB1I2CSA = ADC_Address; // Set the slave address in the module equal to the slave address
+    UCB1CTLW0 &= ~UCTR; // Put into Receive mode
+    UCB1CTLW0 |= UCTXSTT; // Generate the start condition
+}
 
 
 //temp calibration
@@ -154,6 +168,15 @@ __interrupt void EUSCI_B1_I2C_ISR(void) {
             break;
         case 4: // RTC
         case 8: // ADC
+            if (TransmitCounter == 2) {
+                ADCRxData[0] = UCB1RXBUF;
+            } else {
+                ADCRxData[1] = UCB1RXBUF;
+                State += 0b00010000;
+            }
+            //UCB1TXBUF = 0x00;
+            TransmitCounter--;
+            break;
 
     }
     if (TransmitCounter == 0) {
