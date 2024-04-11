@@ -54,11 +54,11 @@ void LocalADCSave() {
 }
 
 void LocalADCAverage() {
-    SecondaryState |= 0b01000000;
+    SecondaryState |= LocalValueValid;
     LocalAveragedData = 0.0;
     for (j = 0; j < AveragingWindowValue; j++) {
         if (LocalADCData[j] == 0) {
-            SecondaryState &= ~0b01000000;
+            SecondaryState &= ~LocalValueValid;
             return;
         }
         LocalAveragedData += (float) LocalADCData[j];
@@ -67,7 +67,7 @@ void LocalADCAverage() {
 }
 
 void LocalADCDataReset() {
-    SecondaryState &= ~0b01000000;
+    SecondaryState &= ~LocalValueValid;
     LocalDataPointer = 0;
     LocalAveragedData = 0.0;
     LocalADCData[0]=0;
@@ -91,11 +91,11 @@ void RemoteADCSave() {
 }
 
 void RemoteADCAverage() {
-    SecondaryState |= 0b00100000;
+    SecondaryState |= RemoteValueValid;
     RemoteAveragedData = 0.0;
     for (j = 0; j < AveragingWindowValue; j++) {
         if (RemoteADCData[j] == 0) {
-            SecondaryState &= ~0b00100000;
+            SecondaryState &= ~RemoteValueValid;
             return;
         }
         RemoteAveragedData += (float) RemoteADCData[j];
@@ -105,7 +105,7 @@ void RemoteADCAverage() {
 
 
 void RemoteADCDataReset() {
-    SecondaryState &= ~0b00100000;
+    SecondaryState &= ~RemoteValueValid;
     RemoteDataPointer = 0;
     RemoteAveragedData = 0.0;
     RemoteADCData[0]=0;

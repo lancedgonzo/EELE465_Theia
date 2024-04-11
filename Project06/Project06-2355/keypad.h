@@ -3,6 +3,7 @@
 
 #include "driverlib.h"
 #include "stdbool.h"
+#include "definitions.h"
 
 #define KEYPAD_COL1(r) (r == 0) ? 1 : 0x0040 // 1.6
 #define KEYPAD_COL2(r) (r == 0) ? 1 : 0x0080 // 1.7
@@ -31,8 +32,6 @@
 #define KEY_C 0x048     //  72
 #define KEY_D 0x088     // 136
 
-#define KeyPressedFlag 0b00000001
-#define KeypadModeToggle 0b00010000
 
 extern uint8_t SecondaryState;
 extern char LastButton;

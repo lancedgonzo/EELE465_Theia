@@ -58,6 +58,7 @@
 #include "keypad.h"
 #include "analogdigital.h"
 #include "i2c.h"
+#include "definitions.h"
 
 
 #define TempThreshold 1000.0
@@ -69,14 +70,14 @@ void TransmitLCD();
 //Vairable Declarations-----------------------------------------------------
 
 // State Variables
-uint8_t State = 0b00000000; // Peltier, Local and remote ADCs, RTC, Timer
+uint8_t State = StateInit; // Peltier, Local and remote ADCs, RTC, Timer
     // 0-1: 0 Off, 1 Heat, 2 Cool, 3 Maintain                                   Peltier Device
     // 2-3: 0 Start ADC, 1 Wait for Sample, 2 Save+Avg, 3 Wait for timer        Local ADC
     // 4-5: 0 Request Temp, 1 Wait for Response, 2 Save+Avg, 3 Wait for timer   Remote ADC
     // 6-7: 0 Request Time, 1 Wait for Response, 2 save and respond, 3 wait     RTC
 
 
-uint8_t SecondaryState = 0b00000000;
+uint8_t SecondaryState = SecondaryStateInit;
     // 0: Key pressed
     // 1-3: Timer stuff 1 sec loop
         // 000 RTC
@@ -92,7 +93,7 @@ uint8_t SecondaryState = 0b00000000;
     // 6: Local value is finalized
     // Maybe peltier next state bits?
 
-uint8_t TransmitState = 0b00000000; // 0 LCD 1 LED 2 RTC 3 ADC, 4 pending LCD, 5 pending LED, 6 pending RTC 7 pending ADC
+uint8_t TransmitState = TransmitInit; // 0 LCD 1 LED 2 RTC 3 ADC, 4 pending LCD, 5 pending LED, 6 pending RTC 7 pending ADC
 
 
 // Keypad
@@ -151,11 +152,8 @@ int main(void) {
             ButtonResponse();
             continue;
         }
-//        if (CheckTempThreshold()) {
-//            continue;
-//        }
 //        // Peltier Device State
-//        switch (0b00000011 & State) {
+//        switch (PeltierBits & State) {
 //            case 0: PeltierHeat(); break; // off
 //            case 1: PeltierCool(); break; // heat
 //            case 2: PeltierMaintain(); break; // cool
@@ -164,25 +162,25 @@ int main(void) {
 //                break;
 //        }
 //        // MSP ADC State
-//        switch (0b00001100 & State) {
-//            case 0: LocalADCStart(); State += 0b00000100;  break; // Start sample
-//            case 4:  break; // wait
-//            case 8:  break; // save and average
-//            case 12: break; // wait
+//        switch (LocalADCBits & State) {
+//            case 0: LocalADCStart(); State += LocalADCIncrement;  break; // Start sample
+//            //case 4:  break; // wait
+//            case 8:  State += LocalADCIncrement; break; // save and average
+//            //case 12: break; // wait
 //            default:
 //                break;
 //        }
 //        // LM92 State
-        switch (0b00110000 & State) {
-            case 0: TransmitState |= StartTxADC; State += 0b00010000;  break; // send message
+        switch (RemoteADCBits & State) {
+            case 0: TransmitState |= StartTxADC; State += RemoteADCIncrement;  break; // send message
             //case 16:  break; // wait
-            case 32: RemoteADCSave(); RemoteADCAverage(); break; // save and average
+            case 32: RemoteADCSave(); RemoteADCAverage(); State += RemoteADCIncrement; break; // save and average
             //case 48:  break; // wait
             default:
                 break;
         }
 //        // RTC State
-//        switch (0b11000000 & State) {
+//        switch (RTCBits & State) {
 //            case 0:   break; // send message
 //            case 64:  break; // wait
 //            case 128: break; // save time
@@ -210,13 +208,15 @@ void ButtonResponse() {
         case 'B':
         case 'C':
         case 'D':
-            State &= 0b11111100;
+            State &= ~PeltierBits;
             State |= LastButton - 'A';
-            TransmitState |= StartTxLED;
+            TransmitState |= StartTxLCD + StartTxLED;
             break;
         case '#':
             LocalADCDataReset();
             RemoteADCDataReset();
+            State &= ~PeltierBits;
+            State |= PeltierStateD;
             TransmitState |= StartTxLCD + StartTxLED;
             break;
         case '1':
@@ -238,15 +238,13 @@ void ButtonResponse() {
                 }
                 Setpoint = Setpoint * 10 + (LastButton - 48);
             }
+            TransmitState |= StartTxLCD;
             break;
         default:
             break;
     }
 
 }
-
-
-bool CheckTempThreshold() { return false;}
 
 void PeltierOff() {}
 void PeltierCool() {}
@@ -260,30 +258,30 @@ void PeltierMaintain() {}
 #pragma vector=TIMER0_B0_VECTOR
 __interrupt void Timer_B_ISR(void){
     P1OUT ^= BIT0;
-    switch (0b00001110 & SecondaryState) {
+    switch (TimerBits & SecondaryState) {
         case 10:        // Local ADC
         case 2:         // Local ADC
-            //State &= 0b11110011;
+            State &= ~LocalADCBits;
             break;
         case 12:        // External ADC
         case 4:         // External ADC
-            State &= 0b11001111;
+            State &= ~RemoteADCBits;
             break;
         case 0:         // RTC
-            //State &= 0b00111111;
+            State &= ~RTCBits;
             break;
         case 8:         // LCD
-            //TransmitState |= StartTxLCD;
+            TransmitState |= StartTxLCD;
             break;
-        case 14: break; // Wait
-        case 6:  break; // Wait
+        //case 14: break; // Wait
+        //case 6:  break; // Wait
         default:
             break;
     }
-    if ((0b00001110 & SecondaryState) != 14)
+    if ((TimerBits & SecondaryState) != 14)
         SecondaryState += 2;
     else
-        SecondaryState -= 0b00001110;
+        SecondaryState -= TimerBits;
     // Clear interrupt flag
     TB0CCTL0 &= ~CCIFG;
 }//-- End Timer_B_ISR ------------------------------------------------------------------
