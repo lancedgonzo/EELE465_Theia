@@ -161,11 +161,11 @@ int main(void) {
 //            default:
 //                break;
 //        }
-//        // MSP ADC State
+        // MSP ADC State
 //        switch (LocalADCBits & State) {
 //            case 0: LocalADCStart(); State += LocalADCIncrement;  break; // Start sample
 //            //case 4:  break; // wait
-//            case 8:  State += LocalADCIncrement; break; // save and average
+//            case 8: LocalADCSave(); LocalADCAverage(); State += LocalADCIncrement; break; // save and average
 //            //case 12: break; // wait
 //            default:
 //                break;
@@ -179,15 +179,15 @@ int main(void) {
             default:
                 break;
         }
-//        // RTC State
-//        switch (RTCBits & State) {
-//            case 0:   break; // send message
-//            case 64:  break; // wait
-//            case 128: break; // save time
-//            case 192: break; // wait
-//            default:
-//                break;
-//        }
+        // RTC State
+        switch (RTCBits & State) {
+            case 0: TransmitState |= StartTxRTC; State += RTCIncrement;  break; // send message
+            //case 64:  break; // wait
+            case 128: State += RTCIncrement; break; // save time
+            //case 192: break; // wait
+            default:
+                break;
+        }
         TransmitStart();
     }
 }
@@ -215,6 +215,8 @@ void ButtonResponse() {
         case '#':
             LocalADCDataReset();
             RemoteADCDataReset();
+            Setpoint = 0;
+            AveragingWindowValue = 3;
             State &= ~PeltierBits;
             State |= PeltierStateD;
             TransmitState |= StartTxLCD + StartTxLED;

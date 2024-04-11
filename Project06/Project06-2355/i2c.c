@@ -19,6 +19,9 @@ volatile float LCelsius;
 volatile int LCelsius_int;
 char LCe[3];
 
+char SetpointDisp[2];
+uint8_t RTCRxData[2];
+
 
 void Init_I2C() {
 
@@ -148,15 +151,18 @@ void ADCToTemp() {
         RCe[2] = RCe[1];
         RCe[1] = '0';
     }
-
+    sprintf(SetpointDisp,"%d", Setpoint);
+    if (SetpointDisp[1] == 0) {
+        SetpointDisp[1] = SetpointDisp[0];
+        SetpointDisp[0] = '0';
+    }
 }
 
 void LCDFormat() {
     // clear LCDmessage[32]
-
     ADCToTemp();
-    if(SecondaryState & KeypadModeToggle){
-        sprintf(LCDMessage, "Set=%d  A:%c%c.%c C%c:   s  P:%c%c.%c C", SecondaryState, LCe[0], LCe[1], LCe[2], 'A' + (State & 0b00000011),RCe[0], RCe[1], RCe[2]);
+    if(SecondaryState & KeypadModeToggle) {
+        sprintf(LCDMessage, "Set=%c%c  A:%c%c.%c C%c:   s  P:%c%c.%c C", SetpointDisp[0], SetpointDisp[1], LCe[0], LCe[1], LCe[2], 'A' + (State & 0b00000011),RCe[0], RCe[1], RCe[2]);
     }
     else{
         sprintf(LCDMessage, "Res=%d   A:%c%c.%c C%c:   s  P:%c%c.%c C", AveragingWindowValue, LCe[0], LCe[1], LCe[2], 'A' + (State & 0b00000011),RCe[0], RCe[1], RCe[2]);
@@ -192,7 +198,7 @@ __interrupt void EUSCI_B1_I2C_ISR(void) {
             }
             else{
                 RTCRxData[1] = UCB1RXBUF;
-                State += 0b00010000;
+                State += RTCIncrement;
             }
             break;
 

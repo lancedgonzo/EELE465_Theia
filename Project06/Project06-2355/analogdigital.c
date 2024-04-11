@@ -15,7 +15,8 @@ uint8_t LocalDataPointer = 0;
 // Remote ADC Variables
 uint8_t ADCRxData[2];
 uint16_t RemoteADCData[10];
-float RemoteAveragedData = 0.0;
+uint16_t RemoteAveragedData = 0;
+float RemoteAveragedFloat = 0.0;
 uint8_t RemoteDataPointer = 0;
 
 
@@ -98,9 +99,9 @@ void RemoteADCAverage() {
             SecondaryState &= ~RemoteValueValid;
             return;
         }
-        RemoteAveragedData += (float) RemoteADCData[j];
+        RemoteAveragedData += RemoteADCData[j];
     }
-    RemoteAveragedData = RemoteAveragedData / (float) AveragingWindowValue;
+    RemoteAveragedFloat = RemoteAveragedData / (float) AveragingWindowValue;
 }
 
 
