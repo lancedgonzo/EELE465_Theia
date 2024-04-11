@@ -155,7 +155,13 @@ void LCDFormat() {
     // clear LCDmessage[32]
 
     ADCToTemp();
-    sprintf(LCDMessage, "Res=%d   A:%c%c.%c C%c:   s  P:%c%c.%c C", AveragingWindowValue, LCe[0], LCe[1], LCe[2], 'A' + (State & 0b00000011),RCe[0], RCe[1], RCe[2]);
+    if(SecondaryState & KeypadModeToggle){
+        sprintf(LCDMessage, "Set=%d  A:%c%c.%c C%c:   s  P:%c%c.%c C", SecondaryState, LCe[0], LCe[1], LCe[2], 'A' + (State & 0b00000011),RCe[0], RCe[1], RCe[2]);
+    }
+    else{
+        sprintf(LCDMessage, "Res=%d   A:%c%c.%c C%c:   s  P:%c%c.%c C", AveragingWindowValue, LCe[0], LCe[1], LCe[2], 'A' + (State & 0b00000011),RCe[0], RCe[1], RCe[2]);
+
+    }
 
 
 }
