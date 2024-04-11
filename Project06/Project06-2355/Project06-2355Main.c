@@ -152,6 +152,13 @@ int main(void) {
     TB0CCTL0 |= CCIE;
     TB0CCTL0 &= ~CCIFG;
 
+    //Timer configured for 50 ms
+    TB1CTL |= TBSSEL__ACLK + MC__UP + ID__1;
+    TB1CCR0 = 1638;
+    TB1R = 0;
+    TB1CCTL0 |= CCIE;
+    TB1CCTL0 &= ~CCIFG;
+
 
     __enable_interrupt();
 
@@ -162,14 +169,14 @@ int main(void) {
             continue;
         }
         // Peltier Device State
-        switch (0b00000011 & State) {
-            case 0: PeltierHeat(); break;
-            case 1: PeltierCool(); break;
-            case 2: PeltierMaintain(); break;
-            case 3: PeltierOff(); break;
-            default:
-                break;
-        }
+//        switch (0b00000011 & State) {
+//            case 0: PeltierHeat(); break;
+//            case 1: PeltierCool(); break;
+//            case 2: PeltierMaintain(); break;
+//            case 3: PeltierOff(); break;
+//            default:
+//                break;
+//        }
         // MSP ADC State
 //        switch (LocalADCBits & State) {
 //            case 0: LocalADCStart(); State += LocalADCIncrement;  break; // Start sample
@@ -180,14 +187,14 @@ int main(void) {
 //                break;
 //        }
 //        // LM92 State
-        switch (RemoteADCBits & State) {
-            case 0: TransmitState |= StartTxADC; State += RemoteADCIncrement;  break; // send message
-            //case 16:  break; // wait
-            case 32: RemoteADCSave(); RemoteADCAverage(); State += RemoteADCIncrement; break; // save and average
-            //case 48:  break; // wait
-            default:
-                break;
-        }
+//        switch (RemoteADCBits & State) {
+//            case 0: TransmitState |= StartTxADC; State += RemoteADCIncrement;  break; // send message
+//            //case 16:  break; // wait
+//            case 32: RemoteADCSave(); RemoteADCAverage(); State += RemoteADCIncrement; break; // save and average
+//            //case 48:  break; // wait
+//            default:
+//                break;
+//        }
         // RTC State
         switch (RTCBits & State) {
             case 0: TransmitState |= StartTxRTC; State += RTCIncrement;  break; // send message
@@ -325,7 +332,7 @@ __interrupt void Timer_B_ISR(void){
             State &= ~RTCBits;
             break;
         case 8:         // LCD
-            TransmitState |= StartTxLCD;
+//            TransmitState |= StartTxLCD;
             break;
         //case 14: break; // Wait
         //case 6:  break; // Wait
@@ -347,3 +354,8 @@ __interrupt void Timer_B1_ISR(void){
     TB0CCTL1 &= ~CCIFG;
 }//-- End Timer_B_ISR -----------------------------------------------------------------
 
+//-ISR Timer B2 ------------------------------------------------------------------------
+#pragma vector=TIMER1_B0_VECTOR
+__interrupt void Timer_B0_ISR(void){
+    TB1CCTL0 &= ~CCIFG;
+}

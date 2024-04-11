@@ -24,7 +24,7 @@
 #define LocalValueValid     0b01000000
 
 // TransmitStatus
-#define TransmitInit        0b00110000
+#define TransmitInit        0b00000000
 #define StartTxLCD          0b00010000
 #define StartTxLED          0b00100000
 #define StartTxRTC          0b01000000

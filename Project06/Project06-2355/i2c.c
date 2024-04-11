@@ -188,13 +188,12 @@ __interrupt void EUSCI_B1_I2C_ISR(void) {
             break;
         case 4: // RTC
             if (TransmitCounter == 3) {
-                UCB0TBCNT = 0x01;
+                UCB1TXBUF = 0x01;
                 ReceiveRTC();
             }
             else if (TransmitCounter == 2) {
                 RTCRxData[0] = UCB1RXBUF;
-            }
-            else{
+            } else {
                 RTCRxData[1] = UCB1RXBUF;
                 State += RTCIncrement;
             }
