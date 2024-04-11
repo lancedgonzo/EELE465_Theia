@@ -96,11 +96,9 @@ void TransmitRTC() {
 }
 
 void ReceiveRTC() {
-    TransmitState &= ~StartTxADC;
-    TransmitState |= TxADC;
     TransmitCounter = 2;
     UCB1TBCNT = 2;
-    UCB1I2CSA = ADC_Address; // Set the slave address in the module equal to the slave address
+    UCB1I2CSA = RTC_Address; // Set the slave address in the module equal to the slave address
     UCB1CTLW0 &= ~UCTR; // Put into Receive mode
     UCB1CTLW0 |= UCTXSTT; // Generate the start condition
 }
