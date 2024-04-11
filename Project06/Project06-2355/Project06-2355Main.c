@@ -88,7 +88,8 @@ uint8_t SecondaryState = 0b00000000;
         // 750 External ADC
         // 875
     // 4: Setpoint enter vs Window Averaging enter
-    // 5:
+    // 5: Remote value is finalized
+    // 6: Local value is finalized
     // Maybe peltier next state bits?
 
 uint8_t TransmitState = 0b00000000; // 0 LCD 1 LED 2 RTC 3 ADC, 4 pending LCD, 5 pending LED, 6 pending RTC 7 pending ADC
@@ -136,7 +137,7 @@ int main(void) {
     // Timer configured for 1/8th of a second
     //  ** TODO **
     TB0CTL |= TBSSEL__ACLK + MC__UP + ID__1;
-    TB0CCR0 = 4260;
+    TB0CCR0 = 4096;
     TB0R = 0;
     TB0CCTL0 |= CCIE;
     TB0CCTL0 &= ~CCIFG;
@@ -175,7 +176,7 @@ int main(void) {
         switch (0b00110000 & State) {
             case 0: TransmitState |= StartTxADC; State += 0b00010000;  break; // send message
             //case 16:  break; // wait
-            case 32:  break; // save and average
+            case 32: RemoteADCSave(); RemoteADCAverage(); break; // save and average
             //case 48:  break; // wait
             default:
                 break;

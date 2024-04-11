@@ -4,15 +4,20 @@
 
 #include "driverlib.h"
 
+
+// Local ADC Variables
 uint16_t LocalADCResult = 0;
 uint16_t LocalADCData[10];
+float LocalAveragedData = 0.0;
 uint8_t LocalDataPointer = 0;
 
-uint16_t RemoteADCResult = 0;
+
+// Remote ADC Variables
+uint8_t ADCRxData[2];
 uint16_t RemoteADCData[10];
+float RemoteAveragedData = 0.0;
 uint8_t RemoteDataPointer = 0;
 
-float AveragedTemp = 0;
 
 
 uint8_t j = 0;
@@ -39,9 +44,32 @@ void LocalADCStart() {
     __no_operation();                                    // For debug only
 }
 
+
+void LocalADCSave() {
+    LocalADCData[LocalDataPointer] = LocalADCResult;
+    LocalDataPointer++;
+    if (LocalDataPointer == AveragingWindowValue) {
+        LocalDataPointer = 0;
+    }
+}
+
+void LocalADCAverage() {
+    SecondaryState |= 0b01000000;
+    LocalAveragedData = 0.0;
+    for (j = 0; j < AveragingWindowValue; j++) {
+        if (LocalADCData[j] == 0) {
+            SecondaryState &= ~0b01000000;
+            return;
+        }
+        LocalAveragedData += (float) LocalADCData[j];
+    }
+    LocalAveragedData = LocalAveragedData / (float) AveragingWindowValue;
+}
+
 void LocalADCDataReset() {
+    SecondaryState &= ~0b01000000;
     LocalDataPointer = 0;
-    LocalADCResult = 0;
+    LocalAveragedData = 0.0;
     LocalADCData[0]=0;
     LocalADCData[1]=0;
     LocalADCData[2]=0;
@@ -54,29 +82,32 @@ void LocalADCDataReset() {
     LocalADCData[9]=0;
 }
 
-void LocalADCSave() {
-    LocalADCData[LocalDataPointer] = LocalADCResult;
-    LocalDataPointer++;
-    if (LocalDataPointer == AveragingWindowValue) {
-        LocalDataPointer = 0;
+void RemoteADCSave() {
+    RemoteADCData[RemoteDataPointer] = ADCRxData[0] << 8 | ADCRxData[1];
+    RemoteDataPointer++;
+    if (RemoteDataPointer == AveragingWindowValue) {
+        RemoteDataPointer = 0;
     }
 }
 
-void LocalADCAverage() {
-    AveragedTemp = 0;
+void RemoteADCAverage() {
+    SecondaryState |= 0b00100000;
+    RemoteAveragedData = 0.0;
     for (j = 0; j < AveragingWindowValue; j++) {
-        if (LocalADCData[j] == 0) {
-            AveragedTemp = 0;
+        if (RemoteADCData[j] == 0) {
+            SecondaryState &= ~0b00100000;
             return;
         }
-        AveragedTemp += (float) LocalADCData[j];
+        RemoteAveragedData += (float) RemoteADCData[j];
     }
-    AveragedTemp = AveragedTemp / (float) AveragingWindowValue;
+    RemoteAveragedData = RemoteAveragedData / (float) AveragingWindowValue;
 }
 
+
 void RemoteADCDataReset() {
+    SecondaryState &= ~0b00100000;
     RemoteDataPointer = 0;
-    RemoteADCResult = 0;
+    RemoteAveragedData = 0.0;
     RemoteADCData[0]=0;
     RemoteADCData[1]=0;
     RemoteADCData[2]=0;

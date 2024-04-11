@@ -19,7 +19,6 @@ volatile float LCelsius;
 volatile int LCelsius_int;
 char LCe[3];
 
-uint8_t ADCRxData[2] = {0, 0};
 
 void Init_I2C() {
 
@@ -115,7 +114,7 @@ void ReceiveADC() {
 
 //temp calibration
 void ADCToTemp() {
-    LCelsius = ((AveragedTemp)/3100)*100;
+    LCelsius = ((LocalAveragedData)/3100)*100;
     LCelsius_int = LCelsius*10;
     sprintf(LCe,"%d", LCelsius_int);
     if (LCe[1] == 0) {
