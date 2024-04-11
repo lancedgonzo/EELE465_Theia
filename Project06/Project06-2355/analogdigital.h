@@ -3,6 +3,7 @@
 
 #include "driverlib.h"
 #include "stdbool.h"
+#include "definitions.h"
 
 // State Variables
 extern uint8_t State;
@@ -23,7 +24,7 @@ void LocalADCAverage();
 void RemoteADCDataReset();
 void RemoteADCSave();
 void RemoteADCAverage();
-bool CheckTempThreshold();
+
 
 
 #endif /* ANALOGDIGITAL_H_ */

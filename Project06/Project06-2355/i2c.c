@@ -171,7 +171,7 @@ __interrupt void EUSCI_B1_I2C_ISR(void) {
                 ADCRxData[0] = UCB1RXBUF;
             } else {
                 ADCRxData[1] = UCB1RXBUF;
-                State += 0b00010000;
+                State += RemoteADCIncrement;
             }
             //UCB1TXBUF = 0x00;
             TransmitCounter--;
