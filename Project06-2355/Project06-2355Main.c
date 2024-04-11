@@ -287,7 +287,21 @@ void PeltierHeat() {
 }
 
 //Will compare the current temperature to the set temperature, and turn on the appropriate switch
-void PeltierMaintain() {}
+void PeltierMaintain() {
+    //If the current temperature is less than the set temperature, turn on the heating switch. 
+    if(AveragedTemp <= /*SELECTED temp reference (either LM19 or user select) - 1deg */){
+        PeltierHeat(); 
+    } else if (AveragedTemp >= /*SELECTED temp reference (either LM19 or user select) + 1deg */)
+    {
+        PeltierCool(); 
+    } else {
+        PeltierOff(); 
+    }
+    
+    //If the current temperature is greater than the set temperature, turn on the cooling switch. 
+    //If the current temperature is within 1 degree of the set temperature, turn off the switches. 
+
+}
 
 
 void LCDFormat() {}
