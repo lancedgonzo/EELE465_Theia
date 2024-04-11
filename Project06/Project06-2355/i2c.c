@@ -85,10 +85,21 @@ void TransmitLED() {
 void TransmitRTC() {
     TransmitState &= ~StartTxRTC;
     TransmitState |= TxRTC;
+    TransmitCounter = 3;
+    UCB1TBCNT = 1;
+    UCB1I2CSA = RTC_Address; // Set the slave address in the module equal to the slave address
+    UCB1CTLW0 |= UCTR; // Put into transmit mode
+    UCB1CTLW0 |= UCTXSTT; // Generate the start condition
 }
 
 void ReceiveRTC() {
-
+    TransmitState &= ~StartTxADC;
+    TransmitState |= TxADC;
+    TransmitCounter = 2;
+    UCB1TBCNT = 2;
+    UCB1I2CSA = ADC_Address; // Set the slave address in the module equal to the slave address
+    UCB1CTLW0 &= ~UCTR; // Put into Receive mode
+    UCB1CTLW0 |= UCTXSTT; // Generate the start condition
 }
 
 void TransmitADC() {
@@ -144,7 +155,7 @@ void LCDFormat() {
     // clear LCDmessage[32]
 
     ADCToTemp();
-    sprintf(LCDMessage, "Res=N   A:%c%c.%c CM:   s  P:%c%c.%c C", 'A' + (State & 0b00000011), LCe[0], LCe[1], LCe[2], RCe[0], RCe[1], RCe[2]);
+    sprintf(LCDMessage, "Res=%d   A:%c%c.%c C%c:   s  P:%c%c.%c C", AveragingWindowValue, LCe[0], LCe[1], LCe[2], 'A' + (State & 0b00000011),RCe[0], RCe[1], RCe[2]);
 
 
 }
@@ -166,6 +177,19 @@ __interrupt void EUSCI_B1_I2C_ISR(void) {
             TransmitCounter--;
             break;
         case 4: // RTC
+            if (TransmitCounter == 3) {
+                UCB0TBCNT = 0x01;
+                ReceiveRTC();
+            }
+            else if (TransmitCounter == 2) {
+                RTCRxData[0] = UCB1RXBUF;
+            }
+            else{
+                RTCRxData[1] = UCB1RXBUF;
+                State += 0b00010000;
+            }
+            break;
+
         case 8: // ADC
             if (TransmitCounter == 2) {
                 ADCRxData[0] = UCB1RXBUF;
