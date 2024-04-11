@@ -63,6 +63,8 @@
 #define LCD_Address 0x046
 #define ADC_Address 0x002
 #define TempThreshold 1000.0
+#define PELTIER_HEAT BIT1
+#define PELTIER_COOL BIT0
 
 void Init_I2C();
 void LCDFormat();
@@ -101,6 +103,9 @@ uint8_t LCDPointer = 0;
 // Temp
 uint8_t AveragingWindowValue = 3;
 extern bool CheckTempThreshold();
+
+// Timing
+void delay_ms_(unsigned int);
 
 //-----------------------------------------------------------------------
 
@@ -253,10 +258,37 @@ void TransmitLCD() {
 
 bool CheckTempThreshold() { return false;}
 
-void PeltierOff() {}
-void PeltierCool() {}
-void PeltierHeat() {}
+//Delay tuned fairly close to 1ms * (passed int) for timing purposes. 
+void delay_ms_(unsigned int ms){
+    int i, j; 
+    for(i=0; i<= ms; i++){
+        __delay_cycles(1050);
+    }
+}
+
+//Turns Off P2.0 & P2.1 on 2355, this turns switches off
+void PeltierOff() {
+    P2OUT &= ~PELTIER_HEAT; 
+    P2OUT &= ~PELTIER_COOL;
+}
+
+//Turns on P2.1 after safety delay, this turns switch connected to heating on
+void PeltierCool() {
+    P2OUT &= ~PELTIER_HEAT; 
+    delay_ms_(50);
+    P2OUT |= PELTIER_COOL; 
+}
+
+//Turns on P2.0 after safety delay, this turns switch connected to cooling on
+void PeltierHeat() {
+    P2OUT &= ~PELTIER_COOL; 
+    delay_ms_(50);
+    P2OUT |= PELTIER_HEAT; 
+}
+
+//Will compare the current temperature to the set temperature, and turn on the appropriate switch
 void PeltierMaintain() {}
+
 
 void LCDFormat() {}
 
