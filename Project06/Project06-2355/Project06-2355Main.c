@@ -275,12 +275,14 @@ void PeltierOff() {
 //Turns on P2.1 after safety delay, this turns switch connected to heating on
 void PeltierCool() {
     P6OUT |= PELTIER_HEAT;
+    P6OUT |= PELTIER_COOL;
     delay_ms_(50);
     P6OUT &= ~PELTIER_COOL;
 }
 
 //Turns on P2.0 after safety delay, this turns switch connected to cooling on
 void PeltierHeat() {
+    P6OUT |= PELTIER_HEAT;
     P6OUT |= PELTIER_COOL;
     delay_ms_(50);
     P6OUT &= ~PELTIER_HEAT;
