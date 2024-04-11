@@ -55,9 +55,14 @@ void TransmitStart() {
             TransmitLCD();
         else if (TransmitState & StartTxLED) // if LED pending
             TransmitLED();
-        else if (TransmitState & StartTxRTC) // if RTC pending
-            TransmitRTC();
-        else if (TransmitState & StartTxADC) // if ADC Pending
+        else if (TransmitState & StartTxRTC) { // if RTC pending
+            if ((SecondaryState & RTCTxRxWait) == RTCRxWait) {
+                ReceiveRTC();
+            }
+            else if ((SecondaryState & RTCTxRxWait) == RTCTxWait) {
+                TransmitRTC();
+            }
+        } else if (TransmitState & StartTxADC) // if ADC Pending
             /*TransmitADC();*/ReceiveADC();
 
     }
@@ -88,7 +93,7 @@ void TransmitLED() {
 void TransmitRTC() {
     TransmitState &= ~StartTxRTC;
     TransmitState |= TxRTC;
-    TransmitCounter = 3;
+    TransmitCounter = 1;
     UCB1TBCNT = 1;
     UCB1I2CSA = RTC_Address; // Set the slave address in the module equal to the slave address
     UCB1CTLW0 |= UCTR; // Put into transmit mode
@@ -96,6 +101,8 @@ void TransmitRTC() {
 }
 
 void ReceiveRTC() {
+    TransmitState &= ~StartTxRTC;
+    TransmitState |= TxRTC;
     TransmitCounter = 2;
     UCB1TBCNT = 2;
     UCB1I2CSA = RTC_Address; // Set the slave address in the module equal to the slave address
@@ -187,15 +194,18 @@ __interrupt void EUSCI_B1_I2C_ISR(void) {
             TransmitCounter--;
             break;
         case 4: // RTC
-            if (TransmitCounter == 3) {
-                UCB1TXBUF = 0x01;
-                ReceiveRTC();
-            }
-            else if (TransmitCounter == 2) {
+            if (TransmitCounter == 2) {
                 RTCRxData[0] = UCB1RXBUF;
-            } else {
-                RTCRxData[1] = UCB1RXBUF;
-                State += RTCIncrement;
+            }
+            else if (TransmitCounter == 1) {
+  //                    RTCRxData[1] = UCB1RXBUF;
+                if ((SecondaryState & RTCTxRxWait) == RTCRxWait) {
+                    RTCRxData[1] = UCB1RXBUF;
+                }
+                else if ((SecondaryState & RTCTxRxWait) == RTCTxWait) {
+                    UCB1TXBUF = 0x00;
+                }
+                SecondaryState += RTCIncrement;
             }
             TransmitCounter--;
             break;

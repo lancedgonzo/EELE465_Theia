@@ -12,16 +12,20 @@
 #define LocalADCIncrement   0b00000100
 #define RemoteADCBits       0b00110000
 #define RemoteADCIncrement  0b00010000
-#define RTCBits             0b11000000
-#define RTCIncrement        0b01000000
+#define RemoteValueValid    0b01000000
+#define LocalValueValid     0b10000000
+
 
 // SecondaryState
 #define SecondaryStateInit  0b00000000
 #define KeyPressedFlag      0b00000001
 #define TimerBits           0b00001110
 #define KeypadModeToggle    0b00010000
-#define RemoteValueValid    0b00100000
-#define LocalValueValid     0b01000000
+#define RTCBits             0b11100000
+#define RTCIncrement        0b00100000
+#define RTCTxWait           0b00100000
+#define RTCRxWait           0b01100000
+#define RTCTxRxWait         0b01100000
 
 // TransmitStatus
 #define TransmitInit        0b00000000

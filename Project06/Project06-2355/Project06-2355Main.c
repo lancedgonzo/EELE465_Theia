@@ -74,7 +74,8 @@ uint8_t State = StateInit; // Peltier, Local and remote ADCs, RTC, Timer
     // 0-1: 0 Off, 1 Heat, 2 Cool, 3 Maintain                                   Peltier Device
     // 2-3: 0 Start ADC, 1 Wait for Sample, 2 Save+Avg, 3 Wait for timer        Local ADC
     // 4-5: 0 Request Temp, 1 Wait for Response, 2 Save+Avg, 3 Wait for timer   Remote ADC
-    // 6-7: 0 Request Time, 1 Wait for Response, 2 save and respond, 3 wait     RTC
+    // 5: Remote value is finalized
+    // 6: Local value is finalized
 
 
 uint8_t SecondaryState = SecondaryStateInit;
@@ -89,8 +90,8 @@ uint8_t SecondaryState = SecondaryStateInit;
         // 750 External ADC
         // 875
     // 4: Setpoint enter vs Window Averaging enter
-    // 5: Remote value is finalized
-    // 6: Local value is finalized
+    // 5-7: 0 Request Time, 1 Wait for Response, 2 save and respond, 3 wait     RTC
+
     // Maybe peltier next state bits?
 
 uint8_t TransmitState = TransmitInit; // 0 LCD 1 LED 2 RTC 3 ADC, 4 pending LCD, 5 pending LED, 6 pending RTC 7 pending ADC
@@ -196,15 +197,17 @@ int main(void) {
 //                break;
 //        }
         // RTC State
-        switch (RTCBits & State) {
-            case 0: TransmitState |= StartTxRTC; State += RTCIncrement;  break; // send message
-//            //case 64:  break; // wait
-//            case 128: State += RTCIncrement; break; // save time
-//            //case 192: break; // wait
+        switch (RTCBits & SecondaryState) {
+            case 0: TransmitState |= StartTxRTC; SecondaryState += RTCIncrement; break; // send message
+            case 32:  break; // wait
+            case 64: TransmitState |= StartTxRTC; SecondaryState += RTCIncrement; break; // wait
+            //case 128: TransmitState |= StartTxRTC; State += RTCIncrement; break; // save time
+            case 192: break; // wait
             default:
                 break;
         }
-        TransmitStart();
+        if (TransmitState)
+            TransmitStart();
     }
 }
 
@@ -329,7 +332,7 @@ __interrupt void Timer_B_ISR(void){
             State &= ~RemoteADCBits;
             break;
         case 0:         // RTC
-            State &= ~RTCBits;
+            SecondaryState &= ~RTCBits;
             break;
         case 8:         // LCD
 //            TransmitState |= StartTxLCD;
