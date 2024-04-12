@@ -281,7 +281,7 @@ void PeltierOff() {
 void PeltierCool() {
     PortPelt |= PELTIER_HEAT; 
     PortPelt |= PELTIER_COOL; 
-    delay_ms_(50);
+    delay_ms_(50); //<-Change to timer? 
     PortPelt &= ~PELTIER_COOL; 
 }
 
@@ -289,7 +289,7 @@ void PeltierCool() {
 void PeltierHeat() {
     PortPelt |= PELTIER_COOL; 
     PortPelt |= PELTIER_HEAT;
-    delay_ms_(50);
+    delay_ms_(50); //<- Change to timer?
     PortPelt &= ~PELTIER_HEAT; 
 }
 
