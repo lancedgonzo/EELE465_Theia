@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include "driverlib.h"
+#include <math.h>
 
 uint8_t TransmitCounter = 0;
 // LCD Output
@@ -146,16 +147,18 @@ void ReceiveADC() {
 //temp calibration
 void ADCToTemp() {
     if (State & LocalValueValid) {
-        LCelsius = (((float) LocalAveragedData)/3100.0)*100;
+        LCelsius = (1.8639 - (((float) LocalAveragedData) / ((float) AveragingWindowValue) / 573.838));
+       // LCelsius = -1481.96 + sqrtf(2196200.0 + LCelsius/0.0000038);
         LCelsius_int = LCelsius*10;
         sprintf(LCe,"%d", LCelsius_int);
-        if (LCe[1] == 0) {
+        if (LCelsius_int < 100) {
+            LCe[2] = LCe[1];
             LCe[1] = LCe[0];
             LCe[0] = '0';
-        }
-        if (LCe[2] == 0) {
-            LCe[2] = LCe[1];
+        } else if (LCe[2] < 10) {
+            LCe[2] = LCe[0];
             LCe[1] = '0';
+            LCe[0] = '0';
         }
     } else {
         LCe[0] = '?';
@@ -168,14 +171,16 @@ void ADCToTemp() {
         RCelsius_int = RCelsius*10;
 
         sprintf(RCe,"%d", RCelsius_int);
-        if (RCe[1] == 0) {
+        if (RCelsius_int < 100) {
+            RCe[2] = RCe[1];
             RCe[1] = RCe[0];
             RCe[0] = '0';
-        }
-        if (RCe[2] == 0) {
-            RCe[2] = RCe[1];
+        } else if (LCe[2] < 10) {
+            RCe[2] = RCe[0];
             RCe[1] = '0';
+            RCe[0] = '0';
         }
+
     } else {
         RCe[0] = '?';
         RCe[1] = '?';
