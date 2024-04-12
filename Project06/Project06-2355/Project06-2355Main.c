@@ -146,8 +146,8 @@ int main(void) {
     P3OUT |= (PELTIER_COOL | PELTIER_HEAT);
     
     //led for peltier
-    // P6DIR |= BIT6;
-    // P6OUT |= BIT6;
+    P6DIR |= BIT6;
+    P6OUT |= BIT6;
     // P1DIR |= BIT1;
     // P1OUT |= BIT1;
     // Disable the GPIO power-on default high-impedance mode
@@ -170,7 +170,6 @@ int main(void) {
     TB1CCTL0 &= ~CCIFG;
 
     GPIO_setAsOutputPin(6, BIT2);
-
     __enable_interrupt();
 
     while(1) {
@@ -239,6 +238,7 @@ void ButtonResponse() {
         case 'B':
         case 'C':
         case 'D':
+            PeltierFlag = true; 
             RTCResetInit();
             State &= ~PeltierBits;
             State |= LastButton - 'A';
@@ -289,6 +289,11 @@ void delay_ms_(unsigned int ms){
     }
 }
 
+void PeltierDelay(void){
+    PeltierOff(); 
+    TB1CCTL0 |= CCIE; 
+    // PeltierFlag = True; 
+}
 
 //Turns Off P2.0 & P2.1 on 2355, this turns switches off
 void PeltierOff() {
@@ -298,43 +303,45 @@ void PeltierOff() {
 
 //Turns on P2.1 after safety delay, this turns switch connected to heating on
 void PeltierCool() {
-    P3OUT &= ~PELTIER_HEAT;
-    P3OUT &= ~PELTIER_COOL;
-    delay_ms_(50);
-
-    P6OUT &= ~BIT6;
-    P1OUT |= BIT1;
-
-    P3OUT |= PELTIER_COOL;
+    if (PeltierFlag == true){
+        PeltierDelay(); 
+    }
+    else{
+        P6OUT &= ~BIT6;
+        P3OUT |= PELTIER_COOL;
+    }
 }
 
 //Turns on P2.0 after safety delay, this turns switch connected to cooling on
 void PeltierHeat() {
-    P3OUT &= ~PELTIER_COOL;
-    P3OUT &= ~PELTIER_HEAT;
-    delay_ms_(50);
-
-    P6OUT |= BIT6;
-    P1OUT &= ~BIT1;
-
-    P3OUT |= PELTIER_HEAT;
+    if (PeltierFlag == true){
+        PeltierDelay(); 
+    }
+    else{
+        P6OUT |= BIT6;
+        P3OUT |= PELTIER_HEAT;
+    }
 }
 
 //Will compare the current temperature to the set temperature, and turn on the appropriate switch
 void PeltierMaintain() {
-    //If temperatures are valid, continue with maintain. Else turn off
-    if(State & 0x60 != 0){
-        //If Remote Temp > than local temp turn on cooling
-        if(RCelsius > (LCelsius + 1)){
-            PeltierCool(); 
-        } else if (RCelsius < (LCelsius -1)){
-            PeltierHeat(); 
-        } else{
-            PeltierOff();
-        }
-    }
-    else{ //Temperatures are not valid so turn off
-        PeltierOff(); 
+    if (PeltierFlag == true){
+        PeltierDelay(); 
+    } else {
+        //If temperatures are valid, continue with maintain. Else turn off
+            if(State & 0x60 != 0){
+                //If Remote Temp > than local temp turn on cooling
+                if(RCelsius > (LCelsius + 1)){
+                    PeltierCool(); 
+                } else if (RCelsius < (LCelsius -1)){
+                    PeltierHeat(); 
+                } else{
+                    PeltierOff();
+                }
+            }
+            else{ //Temperatures are not valid so turn off
+                PeltierOff(); 
+            }
     }
 }
 
@@ -383,6 +390,7 @@ __interrupt void Timer_B1_ISR(void){
 //-ISR Timer B2 ------------------------------------------------------------------------
 #pragma vector=TIMER1_B0_VECTOR
 __interrupt void Timer_B0_ISR(void){
+    TB1CCTL0 &= ~CCIE; 
     PeltierFlag = false;
     TB1CCTL0 &= ~CCIFG;
 }
