@@ -9,7 +9,6 @@
 uint16_t LocalADCResult = 0;
 uint16_t LocalADCData[10];
 uint16_t LocalAveragedData = 0;
-float LocalAveragedFloat = 0.0;
 uint8_t LocalDataPointer = 0;
 
 
@@ -17,7 +16,6 @@ uint8_t LocalDataPointer = 0;
 uint8_t ADCRxData[2];
 uint16_t RemoteADCData[10];
 uint16_t RemoteAveragedData = 0;
-float RemoteAveragedFloat = 0.0;
 uint8_t RemoteDataPointer = 0;
 
 
@@ -57,21 +55,20 @@ void LocalADCSave() {
 
 void LocalADCAverage() {
     State |= LocalValueValid;
-    LocalAveragedData = 0.0;
+    LocalAveragedData = 0;
     for (j = 0; j < AveragingWindowValue; j++) {
         if (LocalADCData[j] == 0) {
             State &= ~LocalValueValid;
             return;
         }
-        LocalAveragedData += (float) LocalADCData[j];
+        LocalAveragedData += LocalADCData[j];
     }
-    LocalAveragedData = LocalAveragedData / (float) AveragingWindowValue;
 }
 
 void LocalADCDataReset() {
     State &= ~LocalValueValid;
     LocalDataPointer = 0;
-    LocalAveragedData = 0.0;
+    LocalAveragedData = 0;
     LocalADCData[0]=0;
     LocalADCData[1]=0;
     LocalADCData[2]=0;
@@ -94,7 +91,7 @@ void RemoteADCSave() {
 
 void RemoteADCAverage() {
     State |= RemoteValueValid;
-    RemoteAveragedData = 0.0;
+    RemoteAveragedData = 0;
     for (j = 0; j < AveragingWindowValue; j++) {
         if (RemoteADCData[j] == 0) {
             State &= ~RemoteValueValid;
@@ -102,14 +99,13 @@ void RemoteADCAverage() {
         }
         RemoteAveragedData += RemoteADCData[j];
     }
-    RemoteAveragedFloat = RemoteAveragedData / (float) AveragingWindowValue;
 }
 
 
 void RemoteADCDataReset() {
     State &= ~RemoteValueValid;
     RemoteDataPointer = 0;
-    RemoteAveragedData = 0.0;
+    RemoteAveragedData = 0;
     RemoteADCData[0]=0;
     RemoteADCData[1]=0;
     RemoteADCData[2]=0;
@@ -142,7 +138,7 @@ __interrupt void ADC_ISR(void) {
         case ADCIV_ADCIFG:
             LocalADCResult = ADCMEM0;
             __bic_SR_register_on_exit(LPM0_bits);            // Clear CPUOFF bit from LPM0
-            State++;
+            State += LocalADCIncrement;
             break;
         default:
             break;

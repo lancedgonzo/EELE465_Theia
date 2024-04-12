@@ -146,7 +146,7 @@ void ReceiveADC() {
 //temp calibration
 void ADCToTemp() {
     if (State & LocalValueValid) {
-        LCelsius = ((LocalAveragedFloat)/3100)*100;
+        LCelsius = (((float) LocalAveragedData)/3100.0)*100;
         LCelsius_int = LCelsius*10;
         sprintf(LCe,"%d", LCelsius_int);
         if (LCe[1] == 0) {
@@ -164,7 +164,7 @@ void ADCToTemp() {
     }
 
     if (State & RemoteValueValid) {
-        RCelsius = RemoteAveragedFloat;
+        RCelsius = (float) RemoteAveragedData;
         RCelsius_int = RCelsius*10;
 
         sprintf(RCe,"%d", RCelsius_int);

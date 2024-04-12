@@ -180,14 +180,14 @@ int main(void) {
 //                break;
 //        }
         // MSP ADC State
-//        switch (LocalADCBits & State) {
-//            case 0: LocalADCStart(); State += LocalADCIncrement;  break; // Start sample
+        switch (LocalADCBits & State) {
+            case 0: LocalADCStart(); State += LocalADCIncrement;  break; // Start sample
 //            //case 4:  break; // wait
-//            case 8: LocalADCSave(); LocalADCAverage(); State += LocalADCIncrement; break; // save and average
+            case 8: LocalADCSave(); LocalADCAverage(); State += LocalADCIncrement; break; // save and average
 //            //case 12: break; // wait
-//            default:
-//                break;
-//        }
+            default:
+                break;
+        }
         // LM92 State
         switch (RemoteADCBits & State) {
             case 0: TransmitState |= StartTxADC; State += RemoteADCIncrement;  break; // send message
