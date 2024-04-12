@@ -43,14 +43,14 @@ void Init_I2C() {
     UCB1IE |= UCRXIE0; // Enable RX interrupt
 
     //----- P4.6 and P4.7 for I2C ---
-    P1DIR &= ~BIT0; 
-    P1REN |= BIT0; 
-    P1OUT |= BIT0; 
-
     P1DIR &= ~BIT1; 
     P1REN |= BIT1; 
     P1OUT |= BIT1; 
-    
+
+    P1DIR &= ~BIT2; 
+    P1REN |= BIT2; 
+    P1OUT |= BIT2; 
+
     P4SEL1 &= ~BIT7;
     P4SEL0 |= BIT7;
 
