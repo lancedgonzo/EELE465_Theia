@@ -204,8 +204,11 @@ void RTCFormat() {
 //        SecondsDisp[1] = '0';
 //    }
 
-    if (Seconds > 300) {
+    if (Seconds >= 300) {
         RTCResetInit();
+        State &= ~PeltierBits;
+        State |= 'D' - 'A';
+        TransmitState |= StartTxLCD + StartTxLED;
     }
 }
 

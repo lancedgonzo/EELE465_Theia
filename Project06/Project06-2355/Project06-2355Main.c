@@ -229,6 +229,7 @@ void ButtonResponse() {
         case 'B':
         case 'C':
         case 'D':
+            RTCResetInit();
             State &= ~PeltierBits;
             State |= LastButton - 'A';
             TransmitState |= StartTxLCD + StartTxLED;
