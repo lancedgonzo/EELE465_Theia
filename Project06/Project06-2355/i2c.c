@@ -216,7 +216,7 @@ void LCDFormat() {
     // clear LCDmessage[32]
     ADCToTemp();
     RTCFormat();
-    if(SecondaryState & KeypadModeToggle) {
+    if ((SecondaryState & KeypadModeToggle) == 0) {
         sprintf(LCDMessage, "Set=%c%c  A:%c%c.%c C%c:%c%c%cs  P:%c%c.%c C", SetpointDisp[0], SetpointDisp[1], LCe[0], LCe[1], LCe[2], 'A' + (State & 0b00000011),SecondsDisp[0],SecondsDisp[1],SecondsDisp[2],RCe[0], RCe[1], RCe[2]);
     }
     else{

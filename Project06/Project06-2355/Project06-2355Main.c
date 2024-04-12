@@ -188,15 +188,15 @@ int main(void) {
 //            default:
 //                break;
 //        }
-//        // LM92 State
-//        switch (RemoteADCBits & State) {
-//            case 0: TransmitState |= StartTxADC; State += RemoteADCIncrement;  break; // send message
-//            //case 16:  break; // wait
-//            case 32: RemoteADCSave(); RemoteADCAverage(); State += RemoteADCIncrement; break; // save and average
-//            //case 48:  break; // wait
-//            default:
-//                break;
-//        }
+        // LM92 State
+        switch (RemoteADCBits & State) {
+            case 0: TransmitState |= StartTxADC; State += RemoteADCIncrement;  break; // send message
+            //case 16:  break; // wait
+            case 32: RemoteADCSave(); RemoteADCAverage(); State += RemoteADCIncrement; break; // save and average
+            //case 48:  break; // wait
+            default:
+                break;
+        }
         // RTC State
         switch (RTCBits & SecondaryState) {
             case 0: TransmitState |= StartTxRTC; SecondaryState += RTCIncrement; break; // send message
@@ -224,6 +224,7 @@ void ButtonResponse() {
     switch(LastButton) {
         case '*':
             SecondaryState ^= KeypadModeToggle;
+            TransmitState |= StartTxLCD;
             break;
         case 'A':
         case 'B':
@@ -253,11 +254,11 @@ void ButtonResponse() {
         case '7':
         case '8':
         case '9':
-            if (SecondaryState & KeypadModeToggle) { // If in Averaging mode
+            if ((SecondaryState & KeypadModeToggle) == KeypadModeToggle) { // If in Averaging mode
                 AveragingWindowValue = LastButton - 48;
             }
         case '0':
-            if (SecondaryState & ~KeypadModeToggle) {
+            if ((SecondaryState & KeypadModeToggle) == 0) {
                 if (Setpoint >= 10) {
                     Setpoint = 0;
                 }

@@ -17,7 +17,7 @@
 
 
 // SecondaryState
-#define SecondaryStateInit  0b00000000
+#define SecondaryStateInit  0b00010000
 #define KeyPressedFlag      0b00000001
 #define TimerBits           0b00001110
 #define KeypadModeToggle    0b00010000
