@@ -18,6 +18,7 @@ void ReceiveRTC();
 void TransmitADC();
 void ReceiveADC();
 void ADCToTemp();
+void RTCResetInit();
 
 extern uint8_t SecondaryState;
 extern uint8_t Setpoint;

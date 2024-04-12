@@ -21,7 +21,8 @@ char LCe[3];
 
 char SetpointDisp[2];
 uint8_t RTCRxData[2];
-
+uint16_t Seconds = 0;
+char SecondsDisp[3];
 
 void Init_I2C() {
 
@@ -56,11 +57,13 @@ void TransmitStart() {
         else if (TransmitState & StartTxLED) // if LED pending
             TransmitLED();
         else if (TransmitState & StartTxRTC) { // if RTC pending
-            if ((SecondaryState & RTCTxRxWait) == RTCRxWait) {
+            if ((SecondaryState & RTCBits) == RTCRxWait) {
                 ReceiveRTC();
             }
-            else if ((SecondaryState & RTCTxRxWait) == RTCTxWait) {
+            else if ((SecondaryState & RTCBits) == RTCTxWait) {
                 TransmitRTC();
+            } else if ((SecondaryState & RTCBits) == RTCReset) {
+                ResetRTC();
             }
         } else if (TransmitState & StartTxADC) // if ADC Pending
             /*TransmitADC();*/ReceiveADC();
@@ -110,6 +113,15 @@ void ReceiveRTC() {
     UCB1CTLW0 |= UCTXSTT; // Generate the start condition
 }
 
+void ResetRTC() {
+    TransmitState &= ~StartTxRTC;
+    TransmitState |= TxRTC;
+    TransmitCounter = 4;
+    UCB1TBCNT = 4;
+    UCB1I2CSA = RTC_Address; // Set the slave address in the module equal to the slave address
+    UCB1CTLW0 |= UCTR; // Put into transmit mode
+    UCB1CTLW0 |= UCTXSTT; // Generate the start condition
+}
 void TransmitADC() {
     TransmitState &= ~StartTxADC;
     TransmitState |= TxADC;
@@ -163,14 +175,49 @@ void ADCToTemp() {
     }
 }
 
+void RTCResetInit() {
+    SecondaryState &= ~RTCBits;
+    SecondaryState |= RTCResetStart;
+}
+
+void RTCFormat() {
+    RTCRxData[1] = ((RTCRxData[1] >> 4) * 10) + (RTCRxData[1] & 0x0F);
+    RTCRxData[0] = ((RTCRxData[0] >> 4) * 10) + (RTCRxData[0] & 0x0F);
+    Seconds =RTCRxData[0] + 60 *RTCRxData[1];
+    sprintf(SecondsDisp,"%d", Seconds);
+    if (Seconds < 10) {
+        SecondsDisp[2] = SecondsDisp[0];
+        SecondsDisp[1] = '0';
+        SecondsDisp[0] = '0';
+    } else if (Seconds < 100) {
+        SecondsDisp[2] = SecondsDisp[1];
+        SecondsDisp[1] = SecondsDisp[0];
+        SecondsDisp[0] = '0';
+
+    }
+//    if (SecondsDisp[1] == 0) {
+//        SecondsDisp[1] = SecondsDisp[0];
+//        SecondsDisp[0] = '0';
+//    }
+//    if (SecondsDisp[2] == 0) {
+//        SecondsDisp[2] = SecondsDisp[1];
+//        SecondsDisp[1] = '0';
+//    }
+
+    if (Seconds > 300) {
+        RTCResetInit();
+    }
+}
+
 void LCDFormat() {
     // clear LCDmessage[32]
     ADCToTemp();
+    RTCFormat();
     if(SecondaryState & KeypadModeToggle) {
-        sprintf(LCDMessage, "Set=%c%c  A:%c%c.%c C%c:   s  P:%c%c.%c C", SetpointDisp[0], SetpointDisp[1], LCe[0], LCe[1], LCe[2], 'A' + (State & 0b00000011),RCe[0], RCe[1], RCe[2]);
+        sprintf(LCDMessage, "Set=%c%c  A:%c%c.%c C%c:%c%c%cs  P:%c%c.%c C", SetpointDisp[0], SetpointDisp[1], LCe[0], LCe[1], LCe[2], 'A' + (State & 0b00000011),SecondsDisp[0],SecondsDisp[1],SecondsDisp[2],RCe[0], RCe[1], RCe[2]);
     }
     else{
-        sprintf(LCDMessage, "Res=%d   A:%c%c.%c C%c:   s  P:%c%c.%c C", AveragingWindowValue, LCe[0], LCe[1], LCe[2], 'A' + (State & 0b00000011),RCe[0], RCe[1], RCe[2]);
+        sprintf(LCDMessage, "Res=%d   A:%c%c.%c C%c:%c%c%cs  P:%c%c.%c C", AveragingWindowValue, LCe[0], LCe[1], LCe[2], 'A' + (State & 0b00000011),SecondsDisp[0],SecondsDisp[1],SecondsDisp[2], RCe[0], RCe[1], RCe[2]);
 
     }
 
@@ -180,6 +227,9 @@ void LCDFormat() {
 
 #pragma vector = EUSCI_B1_VECTOR
 __interrupt void EUSCI_B1_I2C_ISR(void) {
+    if (!TransmitState == 0b11111111) {
+        UCB1TXBUF = 0;
+    }
     switch(TransmitState & ~PendingBits) {
         case 1: // LCD
             UCB1TXBUF = LCDMessage[32 - TransmitCounter];
@@ -195,18 +245,27 @@ __interrupt void EUSCI_B1_I2C_ISR(void) {
             break;
         case 4: // RTC
             if (TransmitCounter == 2) {
-                RTCRxData[0] = UCB1RXBUF;
+                if ((SecondaryState & RTCBits) == RTCReset) {
+                    UCB1TXBUF = 0x00;
+                } else {
+                    RTCRxData[0] = UCB1RXBUF;
+                }
             }
             else if (TransmitCounter == 1) {
   //                    RTCRxData[1] = UCB1RXBUF;
-                if ((SecondaryState & RTCTxRxWait) == RTCRxWait) {
+                if ((SecondaryState & RTCBits) == RTCRxWait) {
                     RTCRxData[1] = UCB1RXBUF;
                 }
-                else if ((SecondaryState & RTCTxRxWait) == RTCTxWait) {
+                else if ((SecondaryState & RTCBits) == RTCTxWait) {
+                    UCB1TXBUF = 0x00;
+                } else if ((SecondaryState & RTCBits) == RTCReset) {
                     UCB1TXBUF = 0x00;
                 }
                 SecondaryState += RTCIncrement;
+            } else {
+                UCB1TXBUF = 0x00;
             }
+
             TransmitCounter--;
             break;
 

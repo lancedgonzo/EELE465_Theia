@@ -160,6 +160,7 @@ int main(void) {
     TB1CCTL0 |= CCIE;
     TB1CCTL0 &= ~CCIFG;
 
+    GPIO_setAsOutputPin(6, BIT2);
 
     __enable_interrupt();
 
@@ -201,8 +202,9 @@ int main(void) {
             case 0: TransmitState |= StartTxRTC; SecondaryState += RTCIncrement; break; // send message
             case 32:  break; // wait
             case 64: TransmitState |= StartTxRTC; SecondaryState += RTCIncrement; break; // wait
-            //case 128: TransmitState |= StartTxRTC; State += RTCIncrement; break; // save time
-            case 192: break; // wait
+            case 128: break; // save time
+            case 160: TransmitState |= StartTxRTC; SecondaryState += RTCIncrement; break; // save time
+            //case 192: break; // wait
             default:
                 break;
         }
@@ -232,6 +234,7 @@ void ButtonResponse() {
             TransmitState |= StartTxLCD + StartTxLED;
             break;
         case '#':
+            RTCResetInit();
             LocalADCDataReset();
             RemoteADCDataReset();
             Setpoint = 0;
@@ -335,7 +338,7 @@ __interrupt void Timer_B_ISR(void){
             SecondaryState &= ~RTCBits;
             break;
         case 8:         // LCD
-//            TransmitState |= StartTxLCD;
+            TransmitState |= StartTxLCD;
             break;
         //case 14: break; // Wait
         //case 6:  break; // Wait

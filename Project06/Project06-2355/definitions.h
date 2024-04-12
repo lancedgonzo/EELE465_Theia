@@ -25,6 +25,8 @@
 #define RTCIncrement        0b00100000
 #define RTCTxWait           0b00100000
 #define RTCRxWait           0b01100000
+#define RTCResetStart       0b10100000
+#define RTCReset            0b11000000
 #define RTCTxRxWait         0b01100000
 
 // TransmitStatus
