@@ -63,8 +63,9 @@
 #define LCD_Address 0x046
 #define ADC_Address 0x002
 #define TempThreshold 1000.0
-#define PELTIER_HEAT BIT1
-#define PELTIER_COOL BIT0
+#define PELTIER_HEAT BIT0
+#define PELTIER_COOL BIT1
+#define PortPelt P3OUT
 
 void Init_I2C();
 void LCDFormat();
@@ -122,8 +123,8 @@ int main(void) {
     P1OUT |= BIT3;
 
     //Peltier INIT
-    P2DIR |= (PELTIER_COOL | PELTIER_HEAT);
-    P2OUT |= (PELTIER_COOL | PELTIER_HEAT); 
+    PortPelt |= (PELTIER_COOL | PELTIER_HEAT);
+    PortPelt |= (PELTIER_COOL | PELTIER_HEAT); 
 
     // Disable the GPIO power-on default high-impedance mode
     // to activate previously configured port settings
@@ -272,37 +273,37 @@ void delay_ms_(unsigned int ms){
 
 //Turns Off P2.0 & P2.1 on 2355, this turns switches off
 void PeltierOff() {
-    P2OUT |= PELTIER_HEAT; 
-    P2OUT |= PELTIER_COOL;
+    PortPelt |= PELTIER_HEAT; 
+    PortPelt |= PELTIER_COOL;
 }
 
 //Turns on P2.1 after safety delay, this turns switch connected to heating on
 void PeltierCool() {
-    P2OUT |= PELTIER_HEAT; 
-    P2OUT |= PELTIER_COOL; 
+    PortPelt |= PELTIER_HEAT; 
+    PortPelt |= PELTIER_COOL; 
     delay_ms_(50);
-    P2OUT &= ~PELTIER_COOL; 
+    PortPelt &= ~PELTIER_COOL; 
 }
 
 //Turns on P2.0 after safety delay, this turns switch connected to cooling on
 void PeltierHeat() {
-    P2OUT |= PELTIER_COOL; 
-    P2OUT |= PELTIER_HEAT;
+    PortPelt |= PELTIER_COOL; 
+    PortPelt |= PELTIER_HEAT;
     delay_ms_(50);
-    P2OUT &= ~PELTIER_HEAT; 
+    PortPelt &= ~PELTIER_HEAT; 
 }
 
 //Will compare the current temperature to the set temperature, and turn on the appropriate switch
 void PeltierMaintain() {
-    //If the current temperature is less than the set temperature, turn on the heating switch. 
-    if(AveragedTemp <= /*SELECTED temp reference (either LM19 or user select) - 1deg */){
-        PeltierHeat(); 
-    } else if (AveragedTemp >= /*SELECTED temp reference (either LM19 or user select) + 1deg */)
-    {
-        PeltierCool(); 
-    } else {
-        PeltierOff(); 
-    }
+    // //If the current temperature is less than the set temperature, turn on the heating switch. 
+    // if(AveragedTemp <= /*SELECTED temp reference (either LM19 or user select) - 1deg */){
+    //     PeltierHeat(); 
+    // } else if (AveragedTemp >= /*SELECTED temp reference (either LM19 or user select) + 1deg */)
+    // {
+    //     PeltierCool(); 
+    // } else {
+    //     PeltierOff(); 
+    // }
     
     //If the current temperature is greater than the set temperature, turn on the cooling switch. 
     //If the current temperature is within 1 degree of the set temperature, turn off the switches. 
