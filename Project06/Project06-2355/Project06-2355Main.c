@@ -63,6 +63,10 @@
 
 #define TempThreshold 1000.0
 
+extern volatile float LCelsius;
+extern volatile float RCelsius;
+
+
 void LCDFormat();
 void TempConversion();
 void TransmitLCD();
