@@ -19,6 +19,7 @@ void TransmitADC();
 void ReceiveADC();
 void ADCToTemp();
 void RTCResetInit();
+void ResetRTC();
 
 extern uint8_t SecondaryState;
 extern uint8_t Setpoint;
@@ -27,8 +28,8 @@ extern char LastButton;
 extern bool HeatCool;
 extern uint8_t TransmitState; // 0 LCD 1 LED 2 RTC 3 ADC, 4 pending LCD, 5 pending LED, 6 pending RTC 7 pending ADC
 extern uint8_t State;
-extern uint8_t LocalAveragedData;
-extern uint8_t RemoteAveragedData;
+extern uint8_t LocalAveragedFloat;
+extern uint8_t RemoteAveragedFloat;
 extern uint8_t ADCRxData[2];
 extern uint8_t AveragingWindowValue;
 

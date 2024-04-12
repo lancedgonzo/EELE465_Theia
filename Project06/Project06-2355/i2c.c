@@ -145,28 +145,41 @@ void ReceiveADC() {
 
 //temp calibration
 void ADCToTemp() {
-    LCelsius = ((LocalAveragedData)/3100)*100;
-    LCelsius_int = LCelsius*10;
-    sprintf(LCe,"%d", LCelsius_int);
-    if (LCe[1] == 0) {
-        LCe[1] = LCe[0];
-        LCe[0] = '0';
-    }
-    if (LCe[2] == 0) {
-        LCe[2] = LCe[1];
-        LCe[1] = '0';
+    if (State & LocalValueValid) {
+        LCelsius = ((LocalAveragedFloat)/3100)*100;
+        LCelsius_int = LCelsius*10;
+        sprintf(LCe,"%d", LCelsius_int);
+        if (LCe[1] == 0) {
+            LCe[1] = LCe[0];
+            LCe[0] = '0';
+        }
+        if (LCe[2] == 0) {
+            LCe[2] = LCe[1];
+            LCe[1] = '0';
+        }
+    } else {
+        LCe[0] = '?';
+        LCe[1] = '?';
+        LCe[2] = '?';
     }
 
-    RCelsius = 35.4; // a place holder until the ADC for the plant is made;
-    RCelsius_int = RCelsius*10;
-    sprintf(RCe,"%d", RCelsius_int);
-    if (RCe[1] == 0) {
-        RCe[1] = RCe[0];
-        RCe[0] = '0';
-    }
-    if (RCe[2] == 0) {
-        RCe[2] = RCe[1];
-        RCe[1] = '0';
+    if (State & RemoteValueValid) {
+        RCelsius = RemoteAveragedFloat;
+        RCelsius_int = RCelsius*10;
+
+        sprintf(RCe,"%d", RCelsius_int);
+        if (RCe[1] == 0) {
+            RCe[1] = RCe[0];
+            RCe[0] = '0';
+        }
+        if (RCe[2] == 0) {
+            RCe[2] = RCe[1];
+            RCe[1] = '0';
+        }
+    } else {
+        RCe[0] = '?';
+        RCe[1] = '?';
+        RCe[2] = '?';
     }
     sprintf(SetpointDisp,"%d", Setpoint);
     if (SetpointDisp[1] == 0) {
@@ -195,19 +208,10 @@ void RTCFormat() {
         SecondsDisp[0] = '0';
 
     }
-//    if (SecondsDisp[1] == 0) {
-//        SecondsDisp[1] = SecondsDisp[0];
-//        SecondsDisp[0] = '0';
-//    }
-//    if (SecondsDisp[2] == 0) {
-//        SecondsDisp[2] = SecondsDisp[1];
-//        SecondsDisp[1] = '0';
-//    }
-
     if (Seconds >= 300) {
         RTCResetInit();
         State &= ~PeltierBits;
-        State |= 'D' - 'A';
+        State |= PeltierStateD;
         TransmitState |= StartTxLCD + StartTxLED;
     }
 }

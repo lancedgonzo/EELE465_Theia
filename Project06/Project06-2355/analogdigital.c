@@ -8,7 +8,8 @@
 // Local ADC Variables
 uint16_t LocalADCResult = 0;
 uint16_t LocalADCData[10];
-float LocalAveragedData = 0.0;
+uint16_t LocalAveragedData = 0;
+float LocalAveragedFloat = 0.0;
 uint8_t LocalDataPointer = 0;
 
 
