@@ -108,7 +108,7 @@ uint8_t TransmitState = TransmitInit; // 0 LCD 1 LED 2 RTC 3 ADC, 4 pending LCD,
 // Keypad
 void ButtonResponse();
 char LastButton = 0;
-
+bool PeltierFlag = false;
 
 // Peltier
 void PeltierOff();
@@ -180,14 +180,14 @@ int main(void) {
             continue;
         }
         // Peltier Device State
-//        switch (0b00000011 & State) {
-//            case 0: PeltierHeat(); break;
-//            case 1: PeltierCool(); break;
-//            case 2: PeltierMaintain(); break;
-//            case 3: PeltierOff(); break;
-//            default:
-//                break;
-//        }
+        switch (0b00000011 & State) {
+            case 0: PeltierHeat(); break;
+            case 1: PeltierCool(); break;
+            case 2: PeltierMaintain(); break;
+            case 3: PeltierOff(); break;
+            default:
+                break;
+        }
         // MSP ADC State
         switch (LocalADCBits & State) {
             case 0: LocalADCStart(); State += LocalADCIncrement;  break; // Start sample
@@ -383,5 +383,6 @@ __interrupt void Timer_B1_ISR(void){
 //-ISR Timer B2 ------------------------------------------------------------------------
 #pragma vector=TIMER1_B0_VECTOR
 __interrupt void Timer_B0_ISR(void){
+    PeltierFlag = false;
     TB1CCTL0 &= ~CCIFG;
 }
