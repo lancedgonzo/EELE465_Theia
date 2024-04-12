@@ -25,14 +25,14 @@ uint8_t j = 0;
 
 void Init_ADC() {
     // Configure ADC A1 pin
-    P1SEL0 |= BIT1;
-    P1SEL1 |= BIT1;
+    P1SEL0 |= BIT0;
+    P1SEL1 |= BIT0;
     // Configure ADC12
     ADCCTL0 |= ADCSHT_2 | ADCON;                             // ADCON, S&H=16 ADC clks
     ADCCTL1 |= ADCSHP;                                       // ADCCLK = MODOSC; sampling timer
     ADCCTL2 &= ~ADCRES;                                      // clear ADCRES in ADCCTL
     ADCCTL2 |= ADCRES_2;                                     // 12-bit conversion results
-    ADCMCTL0 |= ADCINCH_1;                                   // A1 ADC input select; Vref=AVCC
+    ADCMCTL0 |= ADCINCH_0;                                   // A1 ADC input select; Vref=AVCC
     ADCIE |= ADCIE0;                                         // Enable ADC conv complete interrupt
 
 
