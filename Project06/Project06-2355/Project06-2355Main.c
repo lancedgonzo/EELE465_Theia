@@ -97,8 +97,8 @@ uint8_t SecondaryState = SecondaryStateInit;
 uint8_t TransmitState = TransmitInit; // 0 LCD 1 LED 2 RTC 3 ADC, 4 pending LCD, 5 pending LED, 6 pending RTC 7 pending ADC
 
 #define TempThreshold 1000.0
-#define PELTIER_HEAT BIT0
-#define PELTIER_COOL BIT1
+#define PELTIER_HEAT BIT1
+#define PELTIER_COOL BIT0
 
 
 // Keypad
@@ -288,28 +288,32 @@ void delay_ms_(unsigned int ms){
 
 //Turns Off P2.0 & P2.1 on 2355, this turns switches off
 void PeltierOff() {
-    P6OUT |= PELTIER_HEAT;
-    P6OUT |= PELTIER_COOL;
+    P3OUT &= ~PELTIER_HEAT;
+    P3OUT &= ~PELTIER_COOL;
 }
 
 //Turns on P2.1 after safety delay, this turns switch connected to heating on
 void PeltierCool() {
-    P3OUT |= PELTIER_HEAT;
-    P3OUT |= PELTIER_COOL;
+    P3OUT &= ~PELTIER_HEAT;
+    P3OUT &= ~PELTIER_COOL;
     delay_ms_(50);
+
     P6OUT &= ~BIT6;
     P1OUT |= BIT1;
-    P3OUT &= ~PELTIER_COOL;
+
+    P3OUT |= PELTIER_COOL;
 }
 
 //Turns on P2.0 after safety delay, this turns switch connected to cooling on
 void PeltierHeat() {
-    P3OUT |= PELTIER_COOL;
-    P3OUT |= PELTIER_HEAT;
+    P3OUT &= ~PELTIER_COOL;
+    P3OUT &= ~PELTIER_HEAT;
     delay_ms_(50);
+
     P6OUT |= BIT6;
     P1OUT &= ~BIT1;
-    P3OUT &= ~PELTIER_HEAT;
+
+    P3OUT |= PELTIER_HEAT;
 }
 
 //Will compare the current temperature to the set temperature, and turn on the appropriate switch
