@@ -146,8 +146,8 @@ int main(void) {
     P3OUT |= (PELTIER_COOL | PELTIER_HEAT);
     
     //led for peltier
-    // P6DIR |= BIT6;
-    // P6OUT |= BIT6;
+    P6DIR |= BIT6;
+    P6OUT |= BIT6;
     // P1DIR |= BIT1;
     // P1OUT |= BIT1;
     // Disable the GPIO power-on default high-impedance mode
