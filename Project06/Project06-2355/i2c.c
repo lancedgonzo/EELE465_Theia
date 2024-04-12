@@ -148,7 +148,7 @@ void ReceiveADC() {
 void ADCToTemp() {
     if (State & LocalValueValid) {
         LCelsius = (1.8639 - (((float) LocalAveragedData) / ((float) AveragingWindowValue) / 573.838));
-       // LCelsius = -1481.96 + sqrtf(2196200.0 + LCelsius/0.0000038);
+        LCelsius = (LCelsius - 1.94549)/(-0.01169);
         LCelsius_int = LCelsius*10;
         sprintf(LCe,"%d", LCelsius_int);
         if (LCelsius_int < 100) {
